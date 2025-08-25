@@ -1,0 +1,19 @@
+# variable:
+/var\ | "val"
+[# multi-line comment:
+/var\ | 'v'
+/var\ | 1
+/var\ | true
+#]
+
+/kill\ | "me"
+
+# array:
+/arr\ | ["don't", "crawl", "away"]
+
+# tuple:
+/tuple\ | {"don't", 'c', 1, true}
+#]
+
+/var_ht\ | "#var"
+/var_ht\ | '#'
