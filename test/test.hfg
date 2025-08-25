@@ -1,16 +1,18 @@
 # variable:
 /var\ | "val"
-[# multi-line comment:
 /var\ | 'v'
 /var\ | 1
 /var\ | true
-#]
 
-/kill\ | "me"
+/something\ | "something" [# multi-line comment:
+the end of a multi-line comment is here. #]
+
+/kill\ | "me" # Self-explanatory
 
 # array:
 /arr\ | ["don't", "crawl", "away"]
 
+[#
 # tuple:
 /tuple\ | {"don't", 'c', 1, true}
 #]

@@ -24,7 +24,7 @@ namespace henifig {
 	class parse_exception final : public std::exception {
 		std::string full_error;
 	public:
-		parse_exception() = default;
+		parse_exception() = delete;
 		explicit parse_exception(const parse_report& report);
 		[[nodiscard]] const char* what() const noexcept override;
 	};

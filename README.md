@@ -1,7 +1,7 @@
 # Henifig
 
-The name (pronounced as "H*e*h-ni-fig") comes from my nickname, Henonicks
-(pronounced as "Heh-n*o*h-nicks"), combined with "config".
+The name (pronounced as "H*e*n-if-ig") comes from my nickname, Henonicks
+(pronounced as "Hen-*o*h-nicks"), combined with "config".
 This C++ program interprets a given file in this format:
 
 ```
@@ -15,6 +15,7 @@ This C++ program interprets a given file in this format:
 /var char\ | 'v'
 /var int\  | 1
 /var bool\ | true
+# The type at the end is purely a part of the name.*
 
 # Array:
 /arr\      | ["Try", "to", "erase"]

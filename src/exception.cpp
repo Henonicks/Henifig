@@ -21,5 +21,7 @@ const char* henifig::parse_exception::what() const noexcept {
 }
 
 henifig::parse_exception::parse_exception(const parse_report& report) {
-	full_error = fmt::format("Parsing error on {0}:{1} - {2}.", report.get_error_line(), report.get_error_index(), report.get_parse_error());
+	full_error = fmt::format("Parsing error on {0}:{1} - {2}.",
+		report.get_error_line(), report.get_error_index(), report.get_parse_error()
+	);
 }

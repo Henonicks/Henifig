@@ -23,7 +23,7 @@ bool henifig::parse_report::is_error() const noexcept {
 	return !parse_error.empty();
 }
 
-std::string_view henifig::parse_report::get_parse_error() const noexcept {
+std::string henifig::parse_report::get_parse_error() const noexcept {
 	return parse_error;
 }
 

@@ -32,10 +32,18 @@ void henifig::config::operator <<(const std::ifstream& cfg_file) {
 }
 
 henifig::parse_report henifig::config::parse(std::stringstream& cfg) {
+	if (parse_report report = remove_comments(cfg); report.is_error()) {
+		return report;
+	}
+	return {};
+}
+
+henifig::parse_report henifig::config::remove_comments(std::stringstream& cfg) {
 	std::string error_message;
 	std::string line;
 	size_t hanging_comment{}, hanging_quote{}, hanging_apostrophe{};
 	size_t hanging_comment_line{}, hanging_quote_line{}, hanging_apostrophe_line{};
+	size_t error_line{}, error_index{};
 	size_t line_num{};
 	while (std::getline(cfg, line)) {
 		++line_num;
@@ -53,6 +61,9 @@ henifig::parse_report henifig::config::parse(std::stringstream& cfg) {
 					hanging_apostrophe_line = hanging_apostrophe ? line_num : 0;
 				}
 			}
+			else {
+				buffer.replace(i, 1, " ");
+			}
 			if (line[i] == '#' && !hanging_quote && !hanging_apostrophe) {
 				bool ml_comment_begin{};
 				// Is this the beginning of a multi-line comment?
@@ -61,33 +72,38 @@ henifig::parse_report henifig::config::parse(std::stringstream& cfg) {
 					hanging_comment = i;
 					hanging_comment_line = line_num;
 					ml_comment_begin = true;
-					buffer = buffer.substr(first_index, i - first_index - 1);
+					buffer.replace(i - 1, 2, " ");
 				}
 				if (i != line.size() - 1 && line[i + 1] == ']') {
 					// This is the end of the currently hanging comment.
 					if (ml_comment_begin) {
 						// This is the end of the comment that was started with the same '#'.
-						error_message = "unexpected ']'";
+						error_message = "unexpected ']' right after '[#'";
+						error_line = line_num;
+						error_index = i;
 						break;
 					}
 					if (!hanging_comment) {
 						error_message = "unexpected '#]'";
+						error_line = line_num;
+						error_index = i;
 						break;
 					}
 					hanging_comment = 0;
 					hanging_comment_line = 0;
-					buffer = buffer.substr(first_index, i - first_index);
+					buffer = buffer.replace(i + 1, 1, " ");
 				}
 				else if (!hanging_comment) {
 					// We're in a single-line comment.
-					buffer = buffer.substr(first_index, i - first_index);
+					buffer = buffer.replace(i, buffer.size() - i, " ");
 					break;
 				}
 			}
 		}
-		if (!hanging_comment && !buffer.empty()) {
-			parsed_content << buffer << '\n';
+		if (!hanging_comment || hanging_comment != first_index) {
+			parsed_content << buffer;
 		}
+		parsed_content << '\n';
 		if (!error_message.empty()) {
 			break;
 		}
@@ -97,13 +113,20 @@ henifig::parse_report henifig::config::parse(std::stringstream& cfg) {
 	}
 	std::cout << "---\n" << parsed_content.str() << "---\n" << std::endl << hanging_comment << ' ' << hanging_apostrophe << ' ' << hanging_apostrophe << std::endl;
 	if (hanging_comment) {
-		return parse_report{error_message, hanging_comment_line, hanging_comment};
+		error_line = hanging_comment_line;
+		error_index = hanging_comment;
 	}
-	if (hanging_quote) {
-		return parse_report(error_message, hanging_quote_line, hanging_quote);
+	else if (hanging_quote) {
+		error_line = hanging_quote_line;
+		error_index = hanging_quote;
 	}
-	if (hanging_apostrophe) {
-		return parse_report(error_message, hanging_apostrophe_line, hanging_apostrophe);
+	else if (hanging_apostrophe) {
+		error_line = hanging_apostrophe_line;
+		error_index = hanging_apostrophe;
 	}
+	return parse_report(error_message, error_line, index(error_index));
+}
+
+henifig::parse_report henifig::config::lex(std::stringstream& cfg) {
 	return {};
 }
