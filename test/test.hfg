@@ -1,21 +1,27 @@
-# variable:
-/var\ | "val"
-/var\ | 'v'
-/var\ | 1
-/var\ | true
-
-/something\ | "something" [# multi-line comment:
-the end of a multi-line comment is here. #]
-
-/kill\ | "me" # Self-explanatory
-
-# array:
-/arr\ | ["don't", "crawl", "away"]
-
-[#
-# tuple:
-/tuple\ | {"don't", 'c', 1, true}
+# One-line comment
+[# Multi
+   line
+   comment
 #]
 
-/var_ht\ | "#var"
-/var_ht\ | '#'
+# Variable:
+#/var str\  | "val"
+/var char\ | {true}
+#/var int\  | 1234
+#/var bool\ | true
+# The type at the end is purely a part of the name.
+
+[# |
+| /thing\ #]
+
+# Array:
+#/arr["Try", "to", "erase"]\
+
+# Tuple:
+# /tuple{"We all must", 'b', "dreaming this life", 0, false}\
+
+# Multi-declaration:
+# /var1\ | "I won't be forsaken"; /var2\ | "The beast has been awakened"
+[#~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+Important if you want to declare multiple variables in the same line!
+Otherwise omittable.#]

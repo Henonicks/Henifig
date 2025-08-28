@@ -23,20 +23,21 @@
 #include <fmt/format.h>
 
 namespace henifig {
-	namespace types {
-		enum class data_type {
-			string,
-			character,
-			integer,
-			boolean,
-		};
-	}
+	/**
+	 * @brief All the supported data types.
+	 */
+	enum class data_type : uint8_t {
+		string,			// string
+		character,		// char
+		integer,		// int/long
+		number,			// double
+		boolean,		// bool
+		declaration,	// undefined, serves the same purpose as "#define FMT_HEADER_ONLY"
+	};
 	class parse_report {
 		const std::string parse_error;
-		const size_t error_line = 0;
-		const size_t error_index = 0;
-		std::vector <std::string> vars;
-		std::vector <types::data_type> types;
+		const size_t error_line{};
+		const size_t error_index{};
 	public:
 		parse_report() = default;
 		explicit parse_report(std::string_view parse_error, const size_t& error_line, const size_t& error_index);
@@ -46,10 +47,13 @@ namespace henifig {
 		[[nodiscard]] size_t get_error_index() const noexcept;
 	};
 	class config {
+		std::vector <std::string> vars;
+		std::vector <std::string> values_str;
+		std::vector <data_type> types;
 		std::stringstream content, parsed_content;
-		parse_report parse(std::stringstream& cfg);
-		parse_report remove_comments(std::stringstream& cfg);
-		parse_report lex(std::stringstream& cfg);
+		parse_report parse();
+		parse_report remove_comments();
+		parse_report lex();
 	public:
 		void operator <<(const std::ifstream& cfg_file);
 	};

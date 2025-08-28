@@ -19,7 +19,7 @@ set(PROJECT_NAME "henifig")
 project(${PROJECT_NAME})
 
 aux_source_directory("src" henifig_src)
-add_library(${PROJECT_NAME} STATIC ${henifig_src})
+add_library(${PROJECT_NAME} SHARED ${henifig_src})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 set(CMAKE_CXX_STANDARD 20)
 target_include_directories(${PROJECT_NAME} PUBLIC "include")

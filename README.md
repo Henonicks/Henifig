@@ -15,7 +15,7 @@ This C++ program interprets a given file in this format:
 /var char\ | 'v'
 /var int\  | 1
 /var bool\ | true
-# The type at the end is purely a part of the name.*
+# The type at the end is purely a part of the name.
 
 # Array:
 /arr\      | ["Try", "to", "erase"]
