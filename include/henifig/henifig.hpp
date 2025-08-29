@@ -20,6 +20,23 @@
 #include <variant>
 #include <tuple>
 
-#include "types.hpp"
-#include "exception.hpp"
-#include "parser.hpp"
+namespace henifig {
+	class process_logger {
+		static bool LOG_PROCESS;
+	public:
+		static void set_enabled(const bool& enabled) {
+			LOG_PROCESS = enabled;
+		}
+		[[nodiscard]] static bool is_enabled() {
+			return LOG_PROCESS;
+		}
+		process_logger(const process_logger&) = delete;
+		process_logger& operator=(const process_logger&) = delete;
+		process_logger(process_logger&&) = delete;
+		process_logger& operator=(process_logger&&) = delete;
+	};
+}
+
+#include "henifig/types.hpp"
+#include "henifig/exception.hpp"
+#include "henifig/parser.hpp"

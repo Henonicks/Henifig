@@ -16,16 +16,17 @@
 
 #pragma once
 
-#include <fmt/format.h>
-
-#include "henifig/types.hpp"
+#include <henifig/henifig.hpp>
 
 namespace henifig {
-	class parse_exception final : public std::exception {
-		std::string full_error;
-	public:
-		parse_exception() = delete;
-		explicit parse_exception(const parse_report& report);
-		[[nodiscard]] const char* what() const noexcept override;
+	struct logger {
+		template <typename T>
+		logger& operator <<(const T& message) {
+			if (process_logger::is_enabled()) {
+				std::cout << message;
+			}
+			return *this;
+		}
 	};
+	inline logger cout;
 }

@@ -17,6 +17,7 @@
 #include <henifig/henifig.hpp>
 
 int main() {
+	henifig::process_logger::set_enabled(true);
 	henifig::config cfg;
 	std::ifstream cfg_file("../test.hfg");
 	cfg << cfg_file;

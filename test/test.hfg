@@ -5,20 +5,19 @@
 #]
 
 # Variable:
-#/var str\  | "val"
+
+/var str\ | "val"
+"values"
 /var char\ | {true}
-#/var int\  | 1234
-#/var bool\ | true
+/var int\  | 1234
+/var bool\ | true
 # The type at the end is purely a part of the name.
 
-[# |
-| /thing\ #]
-
 # Array:
-#/arr["Try", "to", "erase"]\
+/arr["Try", "to", "erase"]\
 
 # Tuple:
-# /tuple{"We all must", 'b', "dreaming this life", 0, false}\
+/tuple{"We all must", 'b', "dreaming this life", 0, false}\
 
 # Multi-declaration:
 # /var1\ | "I won't be forsaken"; /var2\ | "The beast has been awakened"

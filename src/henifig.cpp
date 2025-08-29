@@ -14,18 +14,7 @@
  * limitations under the License.
 ***************************************************************************/
 
-#pragma once
 
-#include <fmt/format.h>
+#include "henifig/henifig.hpp"
 
-#include "henifig/types.hpp"
-
-namespace henifig {
-	class parse_exception final : public std::exception {
-		std::string full_error;
-	public:
-		parse_exception() = delete;
-		explicit parse_exception(const parse_report& report);
-		[[nodiscard]] const char* what() const noexcept override;
-	};
-}
+bool henifig::process_logger::LOG_PROCESS;
