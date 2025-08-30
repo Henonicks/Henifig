@@ -8,28 +8,31 @@ This C++ program interprets a given file in this format:
 
 ```
 # One-line comment
-[# Multi-line
-   coment
+[# Multi
+   line
+   comment
 #]
 
 # Variable:
-/var str\  | "val"
-/var char\ | 'v'
-/var int\  | 1
-/var bool\ | true
+/var str\    | "val" [# the strings will be concatenated. #] "values"
+/var char\   | 'v'
+/var int\    | -16
+/var number\ | 1.618
+/var bool\   | true
+/declaration\ # can be useful as a runtime "#ifdef" check
 # The type at the end is purely a part of the name.
 
 # Array:
-/arr["Try", "to", "erase"]\
+/arr["Try\"", "to", "erase"]\
 
 # Tuple:
-/tuple{"We all must", 'b', "dreaming this life", 0, false}\
+/tuple{"We all must", 'b', "dreaming this life", 8, false}\
 
 # Multi-declaration:
-/var1\ | "I won't be forsaken"; /var2\ | "The beast has been awakened"
+# /var1\ | "I won't be forsaken"; /var2\ | "The beast has been awakened"
 [#~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
 Important if you want to declare multiple variables in the same line!
-Otherwise omittable.#] 
+Otherwise omittable.#]
 ```
 
 The indentation was added to "prettify" the pseudo config file.

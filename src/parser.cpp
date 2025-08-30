@@ -174,10 +174,10 @@ henifig::parse_report henifig::config::lex() {
 		!hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_tuple.empty()) &&
 
 		(line[i] >= '0' && line[i] <= '9' &&
-		line[i - 1] <= '0' && line[i - 1] >= '9' &&
+		line[i - 1] < '0' && line[i - 1] > '9' &&
 		line[i - 1] != '.' && (line[i - 1] != '-' || (line[i - 1] == '-' && value.size() > 1))) ||
-
-		(line[i] <= '0' && line[i] >= '9')) {
+		(line[i] < '0' && line[i] > '9') // for some fucking reason replacing this with !isdigit(line[i]) breaks it
+		) {
 			cout << "UNEXPECTED EXPRESSION " << line_num << ' ' << i << '\n';
 			return true;
 		}
@@ -288,28 +288,33 @@ henifig::parse_report henifig::config::lex() {
 			else if (line[i] == '\"' || line[i] == '\'' ||
 			line[i] == '[' || line[i] == ']' || line[i] == '{' || line[i] == '}' || line[i] == ',' ||
 			((line[i] >= '0' && line[i] <= '9') || line[i] == '.') || (line[i] == 't' || line[i] == 'f') ||
-			line[i] == ' ') {
+			line[i] == ' ' || line[i] == '-' || line[i] == '.') {
 				if (line[i] != ' ' && afterpipe) {
 					const bool is_string = !hanging_quote && !hanging_apostrophe;
 					const bool quote_after_expr = !value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
-					const bool num_after_expr = isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
-					const bool expr_after_num = !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',';
-					const bool expr_after_expr = !isdigit(line[i]) && line[i] != '}' && line[i] != ']' && line[i] != ',' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
+					const bool num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.';
+					const bool expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.';
+					const bool expr_after_expr = !isdigit(line[i]) && line[i] != '}' && line[i] != ']' && line[i] != ',' && line[i] != '-' && line[i] != '.' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
 					const bool in_arr = !hanging_arr.empty() || !hanging_tuple.empty();
 					const bool comma_in_begin = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
 					const bool comma_in_end = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
 					const bool comma_around_pipe = line[i] == ',' && (var_declared && !piped) || (piped && value.empty());
+					const bool middle_minus = line[i] == '-' && line[i - 1] == '-';
 					// I didn't say I had a lot of tests
 					if (is_string && (quote_after_expr ||
 					line[i] != '"' && (!value.empty() &&
 					(num_after_expr || expr_after_num || expr_after_expr) ||
 					(in_arr && comma_in_begin || comma_in_end)
-					) || comma_around_pipe)) {
+					) || comma_around_pipe) ||
+					middle_minus) {
 						if (quote_after_expr || num_after_expr || expr_after_num || expr_after_expr) {
 							error_message = "unexpected expression";
 						}
 						else if (comma_in_begin || comma_in_end || comma_around_pipe) {
 							error_message = "unexpected ','";
+						}
+						else if (middle_minus) {
+							error_message = "hit '-' in the middle of a number";
 						}
 						else {
 							error_message = "unexpected/unknown expression";
