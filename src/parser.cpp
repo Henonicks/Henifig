@@ -54,16 +54,19 @@ henifig::parse_report henifig::config::remove_comments() {
 		const size_t first_index = line.find_first_not_of(' ');
 		// We'll start from the first position of whatever could be important.
 		for (i = first_index; i < line.size(); i++) {
-			if (line[i] == '/' && !hanging_var &&
-			!hanging_comment && !hanging_quote && !hanging_apostrophe) {
+			if (line[i] == ' ' && hanging_escape) {
+				error_message = "hanging escape sequence";
+				break;
+			}
+			if (line[i] == '/' && !hanging_var && !hanging_comment && !hanging_quote && !hanging_apostrophe) {
 				hanging_var = i;
 			}
 			if (line[i] == '\\') {
-				if (hanging_var && !hanging_comment && !hanging_quote && !hanging_apostrophe) {
-					hanging_var = 0;
-				}
-				else {
+				if (!hanging_comment && line[i + 1] != '|' && line[i + 1] != ' ') {
 					hanging_escape = !hanging_escape ? i : 0;
+				}
+				if (hanging_var && !hanging_escape && !hanging_comment && !hanging_quote && !hanging_apostrophe) {
+					hanging_var = 0;
 				}
 			}
 			if (line[i] == '#' && !hanging_var && !hanging_quote && !hanging_apostrophe) {
@@ -100,10 +103,7 @@ henifig::parse_report henifig::config::remove_comments() {
 				}
 			}
 			if (!hanging_comment) {
-				if ((line[i] == '"' || line[i] == '\'') && hanging_escape) {
-					hanging_escape = 0;
-				}
-				else if (!hanging_apostrophe && line[i] == '"' && !hanging_escape) {
+				if (!hanging_apostrophe && line[i] == '"' && !hanging_escape) {
 					hanging_quote = !hanging_quote ? i : 0;
 					hanging_quote_line = hanging_quote ? line_num : 0;
 				}
@@ -114,6 +114,9 @@ henifig::parse_report henifig::config::remove_comments() {
 			}
 			else {
 				line[i] = ' ';
+			}
+			if (hanging_escape != i) {
+				hanging_escape = 0;
 			}
 		}
 		if (std::count(line.begin(), line.end(), ' ') == line.size()) {
@@ -203,8 +206,8 @@ henifig::parse_report henifig::config::lex() {
 							// If this backslash is to complete a declaration
 							hanging_var = 0;
 							if (!afterpipe) {
-								vars.push_back(value);
 								cout << "AFTERPIPE PUSHING: " << line_num << ' ' << i << " `" << value << "`\n";
+								vars.push_back(value);
 								var_declared = true;
 							}
 							else {
@@ -232,6 +235,7 @@ henifig::parse_report henifig::config::lex() {
 						}
 					}
 					else {
+						cout << "ADDING BACKSLASH " << line_num << ' ' << i << '\n';
 						value += '\\';
 					}
 				}
@@ -258,6 +262,7 @@ henifig::parse_report henifig::config::lex() {
 							values_str.push_back(value);
 						}
 						cout << "NEW DECL, CLEARING " << line_num << ' ' << i << '\n';
+						cout << hanging_arr.empty() << '\n';
 						value.clear();
 						value_str.clear();
 						hanging_var = i;
@@ -322,9 +327,6 @@ henifig::parse_report henifig::config::lex() {
 						break;
 					}
 				}
-				else {
-					cout << line_num << ' ' << i << " `" << line[i] << "` " << afterpipe << "\n";
-				}
 				if (line[i] == '\"') {
 					if (!hanging_escape && !hanging_apostrophe) {
 						if (!hanging_quote) {
@@ -336,38 +338,42 @@ henifig::parse_report henifig::config::lex() {
 						}
 					}
 					else if (hanging_escape) {
-						value += '\\';
-						hanging_escape = 0;
+						if (piped) {
+							value += '\\';
+						}
 						if (hanging_apostrophe) {
 							value_str += '"';
 						}
 					}
-					value += '\"';
+					value += '"';
 				}
 				else if (line[i] == '\'') {
-					if (hanging_escape || hanging_quote) {
+					if (!hanging_escape && !hanging_quote) {
+						if (!hanging_apostrophe) {
+							hanging_apostrophe = i;
+						}
+						else if (value_str.size() > 1) {
+							error_message = "multiple characters in a char literal";
+							break;
+						}
+						else if (value_str.empty()) {
+							error_message = "empty char literal";
+							break;
+						}
+						else {
+							value_str.clear();
+							hanging_apostrophe = 0;
+						}
+					}
+					else {
 						if (hanging_escape) {
-							value += '\\';
-							hanging_escape = 0;
+							if (afterpipe) {
+								value += '\\';
+							}
 						}
 						if (hanging_apostrophe) {
 							value_str += '\'';
 						}
-					}
-					else if (!hanging_apostrophe) {
-						hanging_apostrophe = i;
-					}
-					else if (value_str.size() > 1) {
-						error_message = "multiple characters in a char literal";
-						break;
-					}
-					else if (value_str.empty()) {
-						error_message = "empty char literal";
-						break;
-					}
-					else {
-						value_str.clear();
-						hanging_apostrophe = 0;
 					}
 					value += '\'';
 				}
@@ -377,26 +383,31 @@ henifig::parse_report henifig::config::lex() {
 							error_message = fmt::format("unexpected '{}'", line[i]);
 							break;
 						}
-						if (!piped && !hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_tuple.empty()) {
+						if (!piped && !hanging_escape && !hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_tuple.empty()) {
+							cout << "ARRAY AFTERPIPE, PUSHING, CLEARING " << line_num << ' ' << i << " `" << value << "`\n";
 							var_declared = true;
 							piped = true;
 							vars.push_back(value);
-							cout << "ARRAY AFTERPIPE, PUSHING, CLEARING " << line_num << ' ' << i << " `" << value << "`\n";
 							value.clear();
 							value_str.clear();
 						}
 					}
 					if (line[i] == '[') {
-						value += '[';
 						if (hanging_quote || hanging_apostrophe) {
 							if (hanging_apostrophe) {
 								value_str += '[';
 							}
 						}
-						else {
+						else if (!hanging_escape) {
 							hanging_arr.push(i);
 							hanging_arr_line.push(line_num);
 						}
+						else {
+							if (afterpipe) {
+								value += '\\';
+							}
+						}
+						value += '[';
 					}
 					else if (line[i] == ']') {
 						value += ']';
@@ -405,28 +416,35 @@ henifig::parse_report henifig::config::lex() {
 								value_str += ']';
 							}
 						}
-						else if (hanging_arr.empty()) {
-							error_message = "missing '[' to complete with the ']'";
-							break;
+						else if (!hanging_escape) {
+							if (hanging_arr.empty()) {
+								error_message = "missing '[' to complete with the ']'";
+								break;
+							}
+							if (!hanging_tuple.empty() && hanging_tuple.top() > hanging_arr.top()) {
+								error_message = "can't complete the hanging '{' with the ']'";
+								break;
+							}
+							hanging_arr.pop();
+							hanging_arr_line.pop();
 						}
-						else if (!hanging_tuple.empty() && hanging_tuple.top() > hanging_arr.top()) {
-							error_message = "can't complete the hanging '{' with the ']'";
-							break;
-						}
-						hanging_arr.pop();
-						hanging_arr_line.pop();
 					}
 					else if (line[i] == '{') {
-						value += '{';
 						if (hanging_quote || hanging_apostrophe) {
 							if (hanging_apostrophe) {
 								value_str += '{';
 							}
 						}
-						else {
+						else if (!hanging_escape) {
 							hanging_tuple.push(i);
 							hanging_tuple_line.push(line_num);
 						}
+						else {
+							if (afterpipe) {
+								value += '\\';
+							}
+						}
+						value += '{';
 					}
 					else if (line[i] == '}') {
 						value += '}';
@@ -435,16 +453,18 @@ henifig::parse_report henifig::config::lex() {
 								value_str += '}';
 							}
 						}
-						else if (hanging_tuple.empty()) {
-							error_message = "missing '{' to complete with the '}'";
-							break;
+						else if (!hanging_escape) {
+							if (hanging_tuple.empty()) {
+								error_message = "missing '[' to complete with the ']'";
+								break;
+							}
+							if (!hanging_arr.empty() && hanging_arr.top() > hanging_tuple.top()) {
+								error_message = "can't complete the hanging '{' with the ']'";
+								break;
+							}
+							hanging_tuple.pop();
+							hanging_tuple_line.pop();
 						}
-						else if (!hanging_arr.empty() && hanging_arr.top() > hanging_tuple.top()) {
-							error_message = "can't complete the hanging '[' with the '}'";
-							break;
-						}
-						hanging_tuple.pop();
-						hanging_tuple_line.pop();
 					}
 				}
 				else if (line[i] == ',') {
@@ -505,6 +525,11 @@ henifig::parse_report henifig::config::lex() {
 				else if (line[i] == ' ') {
 					cout << "SPACE HIT " << line_num << ' ' << i << '\n';
 					cout << hanging_var << ' ' << var_declared << ' ' << hanging_quote << ' ' << hanging_apostrophe << '\n';
+					if (hanging_escape) {
+						cout << "HANGING ESCAPE SEQUENCE\n";
+						error_message = "hanging escape sequence";
+						break;
+					}
 					if ((hanging_var && !var_declared) || (hanging_quote || hanging_apostrophe)) {
 						value += ' ';
 						value_str += ' ';
@@ -519,6 +544,7 @@ henifig::parse_report henifig::config::lex() {
 				}
 			}
 			else if ((!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
+				cout << "UNKNOWN EXPRESSION\n";
 				error_message = "unknown expression";
 				if (line[i] == '#') {
 					error_message += fmt::format(".\n           Note: a comment seems to have made "
@@ -541,7 +567,6 @@ henifig::parse_report henifig::config::lex() {
 						error_message = fmt::format(R"(unexpected escape sequence: "\{}")", line[i]);
 						break;
 					}
-					hanging_escape = 0;
 				}
 				else {
 					to_add = line[i];
@@ -560,6 +585,9 @@ henifig::parse_report henifig::config::lex() {
 				var_declared = false;
 				piped = false;
 				afterpipe = false;
+			}
+			if (hanging_escape != i) {
+				hanging_escape = 0;
 			}
 		}
 		if (!error_message.empty()) {

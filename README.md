@@ -14,13 +14,18 @@ This C++ program interprets a given file in this format:
 #]
 
 # Variable:
-/var str\    | "val" [# the strings will be concatenated. #] "values"
-/var char\   | 'v'
-/var int\    | -16
-/var number\ | 1.618
-/var bool\   | true
+/var \[str\]\ | "\"val" [# the strings will be concatenated. #] "values"
+#~~~~^~~~~^
+/var \{char\}\  | 'v'
+#~~~~^~~~~~^
+# Escaping needed for the brackets if they're meant as part of the name.
+
+/var int\     | -16
+/var number\  | 1.618
+/var bool\    | true
 /declaration\ # can be useful as a runtime "#ifdef" check
 # The type at the end is purely a part of the name.
+
 
 # Array:
 /arr["Try\"", "to", "erase"]\
