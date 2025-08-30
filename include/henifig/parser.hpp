@@ -20,6 +20,8 @@
 #include <string>
 #include <sstream>
 #include <stack>
+#include <variant>
+
 #include <fmt/format.h>
 
 #include "henifig/types.hpp"

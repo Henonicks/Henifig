@@ -20,14 +20,14 @@
 void henifig::config::operator <<(const std::ifstream& cfg_file) {
 	content.str(std::string());
 	content << cfg_file.rdbuf() << '\n';
-	if (const parse_report report = parse(); report.is_error()) {
+	if (const parse_report report = process_parsing(); report.is_error()) {
 		content.str(std::string());
 		parsed_content.str(std::string());
 		throw parse_exception(report);
 	}
 }
 
-henifig::parse_report henifig::config::parse() {
+henifig::parse_report henifig::config::process_parsing() {
 	if (const parse_report report = remove_comments(); report.is_error()) {
 		return report;
 	}
@@ -289,6 +289,26 @@ henifig::parse_report henifig::config::lex() {
 			line[i] == '[' || line[i] == ']' || line[i] == '{' || line[i] == '}' || line[i] == ',' ||
 			((line[i] >= '0' && line[i] <= '9') || line[i] == '.') || (line[i] == 't' || line[i] == 'f') ||
 			line[i] == ' ') {
+				if (line[i] != ' ' && afterpipe) {
+					cout << line_num << ' ' << i << " `" << line << "` `" << value << "` " << hanging_quote << ' ' << hanging_apostrophe << "\n";
+					if ((!hanging_quote && !hanging_apostrophe) && (
+					(!value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{') ||
+					line[i] != '"' && (
+					// No, cuz like, I didn't pretend to study competitive programming to have shit like this with somehow more parentheses in my code (in just a singular if statement!) than rejections in my life actually fucking work, somehow manage to! Somehow this passes every single of my fucking test. And I don't even know how! Fucking piece of shit code, I just want to move onto the parser!
+					(!value.empty()) &&
+					((isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{') ||
+					(!isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',')) ||
+					((!hanging_arr.empty() || !hanging_tuple.empty()) &&
+					(line[i] != '}' && line[i] != ']' && line[i] != ',' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{') ||
+					line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{'))
+					))) {
+						error_message = "unexpected expression";
+						break;
+					}
+				}
+				else {
+					cout << line_num << ' ' << i << " `" << line[i] << "` " << afterpipe << "\n";
+				}
 				if (line[i] == '\"') {
 					if (!hanging_escape && !hanging_apostrophe) {
 						if (!hanging_quote) {
@@ -299,9 +319,12 @@ henifig::parse_report henifig::config::lex() {
 							hanging_quote = 0;
 						}
 					}
-					if (hanging_escape) {
+					else if (hanging_escape) {
 						value += '\\';
 						hanging_escape = 0;
+						if (hanging_apostrophe) {
+							value_str += '"';
+						}
 					}
 					value += '\"';
 				}
@@ -334,15 +357,15 @@ henifig::parse_report henifig::config::lex() {
 				}
 				else if (line[i] == '[' || line[i] == ']' || line[i] == '{' || line[i] == '}') {
 					if (line[i] == '[' || line[i] == '{') {
-						if (afterpipe && hanging_arr.empty() && hanging_tuple.empty()) {
-							error_message = "unknown expression '{}'";
+						if ((piped || afterpipe) && hanging_arr.empty() && hanging_tuple.empty()) {
+							error_message = fmt::format("unexpected '{}'", line[i]);
 							break;
 						}
 						if (!piped && !hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_tuple.empty()) {
 							var_declared = true;
 							piped = true;
 							vars.push_back(value);
-							cout << "ARRAY AFTERPIPE, PUSHING, CLEARING" << line_num << ' ' << i << " `" << value << "`\n";
+							cout << "ARRAY AFTERPIPE, PUSHING, CLEARING " << line_num << ' ' << i << " `" << value << "`\n";
 							value.clear();
 							value_str.clear();
 						}
@@ -431,7 +454,7 @@ henifig::parse_report henifig::config::lex() {
 					}
 					else if ((!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
 						if (!hanging_arr.empty() || !hanging_tuple.empty()) {
-							error_message = "unknown expression";
+							error_message = "unexpected expression";
 							break;
 						}
 					}
@@ -480,19 +503,12 @@ henifig::parse_report henifig::config::lex() {
 				}
 			}
 			else if ((!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
-				if (!hanging_var) {
-					unexpected_expression();
-					error_message = "unexpected expression";
-					break;
+				error_message = "unknown expression";
+				if (line[i] == '#') {
+					error_message += fmt::format(".\n           Note: a comment seems to have made "
+					"its way through to the lexing stage. Are you missing a '{}'?", !hanging_arr.empty() ? ']' : '}');
 				}
-				if (!hanging_arr.empty() || !hanging_tuple.empty()) {
-					error_message = "unknown expression";
-					if (line[i] == '#') {
-						error_message += fmt::format(".\n           Note: a comment seems to have made"
-						"its way through to the lexing stage. Are you missing a '{}'?", !hanging_arr.empty() ? ']' : '}');
-					}
-					break;
-				}
+				break;
 			}
 			else {
 				cout << "ELSE: " << line_num << ' ' << i << " `" << line[i] << "`\n";
@@ -560,4 +576,8 @@ henifig::parse_report henifig::config::lex() {
 	}
 	cout << "----\n";
 	return parse_report(error_message, line_num, i);
+}
+
+henifig::parse_report henifig::config::parse() {
+
 }

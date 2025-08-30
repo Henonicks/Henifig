@@ -16,6 +16,8 @@
 
 #include <henifig/henifig.hpp>
 
+#include "henifig/internal/logger.hpp"
+
 int main() {
 	henifig::process_logger::set_enabled(true);
 	henifig::config cfg;

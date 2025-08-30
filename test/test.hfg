@@ -8,16 +8,16 @@
 
 /var str\ | "val"
 "values"
-/var char\ | {true}
+/var char\ | 'v'
 /var int\  | 1234
 /var bool\ | true
 # The type at the end is purely a part of the name.
 
 # Array:
-/arr["Try\"", "to","erase"]\
+/arr[0, "Try\"", "to", "erase"]\
 
 # Tuple:
-/tuple{"We all must", 'b', "dreaming this life", 0, false}\
+/tuple{"We all must", '\"', 'b', "dreaming this life", 0, false}\
 
 # Multi-declaration:
 # /var1\ | "I won't be forsaken"; /var2\ | "The beast has been awakened"

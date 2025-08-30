@@ -51,9 +51,10 @@ namespace henifig {
 		std::vector <std::string> values_str;
 		std::vector <data_type> types;
 		std::stringstream content, parsed_content;
-		parse_report parse();
+		parse_report process_parsing();
 		parse_report remove_comments();
 		parse_report lex();
+		parse_report parse();
 	public:
 		void operator <<(const std::ifstream& cfg_file);
 	};

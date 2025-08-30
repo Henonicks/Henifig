@@ -1,5 +1,7 @@
 # Henifig
 
+## Introduction
+
 The name (pronounced as "H*e*n-if-ig") comes from my nickname, Henonicks
 (pronounced as "Hen-*o*h-nicks"), combined with "config".
 This C++ program interprets a given file in this format:
@@ -39,6 +41,10 @@ this project is not just unstable, but is unusable.
 
 One of the planned features is conversion to json.
 
-### Compilation:
+## Compilation
+
+todo
+
+## Debugging
 
 todo
