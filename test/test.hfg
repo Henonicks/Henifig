@@ -14,7 +14,7 @@
 # The type at the end is purely a part of the name.
 
 # Array:
-/arr["Try", "to", "erase"]\
+/arr["Try\"", "to","erase"]\
 
 # Tuple:
 /tuple{"We all must", 'b', "dreaming this life", 0, false}\
