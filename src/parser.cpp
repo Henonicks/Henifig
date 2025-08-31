@@ -163,6 +163,7 @@ henifig::parse_report henifig::config::lex() {
 	size_t hanging_var{}, hanging_quote{}, hanging_apostrophe{}, hanging_escape{};
 	std::stack <size_t> hanging_arr, hanging_tuple;
 	std::stack <size_t> hanging_arr_line{}, hanging_tuple_line{};
+	bool is_double{};
 	size_t hanging_comma_line{};
 	std::string value, value_str;
 	bool var_declared{};
@@ -229,6 +230,7 @@ henifig::parse_report henifig::config::lex() {
 							cout << "/VAR()\\, CLEARING " << line_num << ' ' << i << '\n';
 							value.clear();
 							value_str.clear();
+							is_double = false;
 						}
 						else {
 							hanging_escape = i;
@@ -269,6 +271,7 @@ henifig::parse_report henifig::config::lex() {
 						var_declared = false;
 						piped = false;
 						afterpipe = false;
+						is_double = false;
 					}
 				}
 			}
@@ -279,6 +282,7 @@ henifig::parse_report henifig::config::lex() {
 						cout << "PIPE HIT, CLEARING " << line_num << ' ' << i << '\n';
 						value.clear();
 						value_str.clear();
+						is_double = false;
 					}
 					else {
 						error_message = "expected expression after the '|' sign";
@@ -295,7 +299,7 @@ henifig::parse_report henifig::config::lex() {
 			((line[i] >= '0' && line[i] <= '9') || line[i] == '.') || (line[i] == 't' || line[i] == 'f') ||
 			line[i] == ' ' || line[i] == '-' || line[i] == '.') {
 				if (line[i] != ' ' && afterpipe) {
-					const bool is_string = !hanging_quote && !hanging_apostrophe;
+					const bool is_string = hanging_quote || hanging_apostrophe;
 					const bool quote_after_expr = !value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
 					const bool num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.';
 					const bool expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.';
@@ -305,13 +309,15 @@ henifig::parse_report henifig::config::lex() {
 					const bool comma_in_end = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
 					const bool comma_around_pipe = line[i] == ',' && (var_declared && !piped) || (piped && value.empty());
 					const bool middle_minus = line[i] == '-' && line[i - 1] == '-';
+					const bool escaped_num = (isdigit(line[i]) || line[i] == '.' || line[i] == '-') && hanging_escape;
+					const bool hanging_dot = line[i] == '.' && !isdigit(line[i + 1]);
 					// I didn't say I had a lot of tests
-					if (is_string && (quote_after_expr ||
+					if (!is_string && (quote_after_expr ||
 					line[i] != '"' && (!value.empty() &&
 					(num_after_expr || expr_after_num || expr_after_expr) ||
 					(in_arr && comma_in_begin || comma_in_end)
 					) || comma_around_pipe) ||
-					middle_minus) {
+					middle_minus || escaped_num || hanging_dot) {
 						if (quote_after_expr || num_after_expr || expr_after_num || expr_after_expr) {
 							error_message = "unexpected expression";
 						}
@@ -320,6 +326,12 @@ henifig::parse_report henifig::config::lex() {
 						}
 						else if (middle_minus) {
 							error_message = "hit '-' in the middle of a number";
+						}
+						else if (escaped_num) {
+							error_message = "unexpected escape sequence in the middle of a number";
+						}
+						else if (hanging_dot) {
+							error_message = "hanging '.'";
 						}
 						else {
 							error_message = "unexpected/unknown expression";
@@ -390,6 +402,7 @@ henifig::parse_report henifig::config::lex() {
 							vars.push_back(value);
 							value.clear();
 							value_str.clear();
+							is_double = false;
 						}
 					}
 					if (line[i] == '[') {
@@ -522,6 +535,19 @@ henifig::parse_report henifig::config::lex() {
 						}
 					}
 				}
+				else if (line[i] == '.') {
+					if (is_double) {
+						error_message = "repeated '.' in a number";
+						break;
+					}
+					if (!hanging_quote && !hanging_apostrophe) {
+						is_double = true;
+						if (value.empty()) {
+							value += '0';
+						}
+					}
+					value += '.';
+				}
 				else if (line[i] == ' ') {
 					cout << "SPACE HIT " << line_num << ' ' << i << '\n';
 					cout << hanging_var << ' ' << var_declared << ' ' << hanging_quote << ' ' << hanging_apostrophe << '\n';
@@ -543,7 +569,7 @@ henifig::parse_report henifig::config::lex() {
 					afterpipe = true;
 				}
 			}
-			else if ((!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
+			else if (line[i] != ';' && (!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
 				cout << "UNKNOWN EXPRESSION\n";
 				error_message = "unknown expression";
 				if (line[i] == '#') {
@@ -552,7 +578,7 @@ henifig::parse_report henifig::config::lex() {
 				}
 				break;
 			}
-			else {
+			else if (line[i] != ';') {
 				cout << "ELSE: " << line_num << ' ' << i << " `" << line[i] << "`\n";
 				char to_add;
 				if (hanging_escape) {
@@ -564,7 +590,7 @@ henifig::parse_report henifig::config::lex() {
 						break;
 					}
 					else {
-						error_message = fmt::format(R"(unexpected escape sequence: "\{}")", line[i]);
+						error_message = fmt::format(R"(undefined escape sequence: "\{}")", line[i]);
 						break;
 					}
 				}
@@ -578,13 +604,18 @@ henifig::parse_report henifig::config::lex() {
 				}
 			}
 			if (line[i] == ';') {
-				if (piped) {
-					error_message = "expected expression after '|'";
-					break;
+				if (!hanging_quote && !hanging_apostrophe && !hanging_var) {
+					if (piped && value.empty()) {
+						error_message = "expected expression after '|'";
+						break;
+					}
+					var_declared = false;
+					piped = false;
+					afterpipe = false;
 				}
-				var_declared = false;
-				piped = false;
-				afterpipe = false;
+				else {
+					value += ';';
+				}
 			}
 			if (hanging_escape != i) {
 				hanging_escape = 0;
