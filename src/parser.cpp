@@ -615,6 +615,9 @@ henifig::parse_report henifig::config::lex() {
 				}
 				else {
 					value += ';';
+					if (hanging_apostrophe) {
+						value_str += ';';
+					}
 				}
 			}
 			if (hanging_escape != i) {
