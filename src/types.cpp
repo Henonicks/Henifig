@@ -16,15 +16,19 @@
 
 #include "henifig/types.hpp"
 
-henifig::parse_report::parse_report(const std::string_view parse_error, const size_t& error_line, const size_t& error_index) :
-parse_error(parse_error), error_line(error_line), error_index(error_index) {}
+henifig::parse_report::parse_report(const error_codes error_code, const size_t& error_line, const size_t& error_index) :
+error_code(error_code), error_line(error_line), error_index(error_index) {}
 
 bool henifig::parse_report::is_error() const noexcept {
-	return !parse_error.empty();
+	return error_code != OK;
 }
 
-std::string henifig::parse_report::get_parse_error() const noexcept {
-	return parse_error;
+henifig::error_codes henifig::parse_report::get_error_code() const noexcept {
+	return error_code;
+}
+
+const char* henifig::parse_report::get_parse_error() const noexcept {
+	return error_messages[error_code];
 }
 
 size_t henifig::parse_report::get_error_line() const noexcept {

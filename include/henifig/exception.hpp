@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <fmt/format.h>
-
 #include "henifig/types.hpp"
 
 namespace henifig {

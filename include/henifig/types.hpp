@@ -22,6 +22,8 @@
 #include <sstream>
 #include <fmt/format.h>
 
+#include "henifig/errors.hpp"
+
 namespace henifig {
 	/**
 	 * @brief All the supported data types.
@@ -35,14 +37,15 @@ namespace henifig {
 		declaration,	// undefined, serves the same purpose as "#define FMT_HEADER_ONLY"
 	};
 	class parse_report {
-		const std::string parse_error;
+		const error_codes error_code{};
 		const size_t error_line{};
 		const size_t error_index{};
 	public:
 		parse_report() = default;
-		explicit parse_report(std::string_view parse_error, const size_t& error_line, const size_t& error_index);
+		explicit parse_report(error_codes error_code, const size_t& error_line, const size_t& error_index);
 		[[nodiscard]] bool is_error() const noexcept;
-		[[nodiscard]] std::string get_parse_error() const noexcept;
+		[[nodiscard]] error_codes get_error_code() const noexcept;
+		[[nodiscard]] const char* get_parse_error() const noexcept;
 		[[nodiscard]] size_t get_error_line() const noexcept;
 		[[nodiscard]] size_t get_error_index() const noexcept;
 	};
