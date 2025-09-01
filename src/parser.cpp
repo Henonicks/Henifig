@@ -561,7 +561,7 @@ henifig::parse_report henifig::config::lex() {
 					}
 					if (!hanging_quote && !hanging_apostrophe) {
 						is_double = true;
-						if (!isdigit(value[i-1])) {
+						if (!isdigit(*value.rbegin())) {
 							value += '0';
 						}
 					}
