@@ -434,7 +434,6 @@ henifig::parse_report henifig::config::lex() {
 						value += '[';
 					}
 					else if (line[i] == ']') {
-						value += ']';
 						if (hanging_quote || hanging_apostrophe) {
 							if (hanging_apostrophe) {
 								value_str += ']';
@@ -449,9 +448,14 @@ henifig::parse_report henifig::config::lex() {
 								error_code = TUPLE_COMPLETED_WITH_ARR;
 								break;
 							}
+							if (*value.rbegin() == ',') {
+								error_code = HANGING_COMMA;
+								break;
+							}
 							hanging_arr.pop();
 							hanging_arr_line.pop();
 						}
+						value += ']';
 					}
 					else if (line[i] == '{') {
 						if (hanging_quote || hanging_apostrophe) {
@@ -471,7 +475,6 @@ henifig::parse_report henifig::config::lex() {
 						value += '{';
 					}
 					else if (line[i] == '}') {
-						value += '}';
 						if (hanging_quote || hanging_apostrophe) {
 							if (hanging_apostrophe) {
 								value_str += '}';
@@ -486,9 +489,14 @@ henifig::parse_report henifig::config::lex() {
 								error_code = TUPLE_COMPLETED_WITH_ARR;
 								break;
 							}
+							if (*value.rbegin() == ',') {
+								error_code = HANGING_COMMA;
+								break;
+							}
 							hanging_tuple.pop();
 							hanging_tuple_line.pop();
 						}
+						value += '}';
 					}
 				}
 				else if (line[i] == ',') {
