@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 ***************************************************************************/
-
-
 #pragma once
 
 namespace henifig {
@@ -33,11 +31,17 @@ namespace henifig {
 		HANGING_ARR,
 		UNEXPECTED_ARR,
 		UNEXPECTED_ARR_END,
-		TUPLE_COMPLETED_WITH_ARR,
-		HANGING_TUPLE,
-		UNEXPECTED_TUPLE,
-		UNEXPECTED_TUPLE_END,
-		ARR_COMPLETED_WITH_TUPLE,
+		MAP_COMPLETED_WITH_ARR,
+		HANGING_MAP,
+		UNEXPECTED_MAP,
+		UNEXPECTED_MAP_END,
+		ARR_COMPLETED_WITH_MAP,
+		EXPECTED_DOLLAR,
+		HANGING_DOLLAR,
+		UNEXPECTED_DOLLAR,
+		REPEATED_DOLLAR,
+		PIPED_KEY,
+		PIPED_VALUE,
 		MULTIPLE_CHARS,
 		NO_CHARS,
 		UNEXPECTED_COMMA,
@@ -50,7 +54,9 @@ namespace henifig {
 		UNKNOWN_EXPRESSION,
 		WRONG_EXPRESSION,
 		MISSING_SEMICOLON,
+		UNKNOWN_TYPE,
 	};
+
 	inline const char* error_messages[] = {
 		"",
 		"hanging escape sequence",
@@ -67,10 +73,16 @@ namespace henifig {
 		"unexpected array declaration",
 		"missing '[' to complete with the ']'",
 		"can't complete the hanging '{' with the ']'",
-		"hanging tuple declaration",
-		"unexpected tuple declaration",
+		"hanging map declaration",
+		"unexpected map declaration",
 		"missing '{' to complete with the '}'",
 		"can't complete the hanging '[' with the '}'",
+		"expected '$'",
+		"hanging '$'",
+		"unexpected '$'",
+		"repeated '$'",
+		"unexpected key name after the '|'",
+		"unexpected '|' after the expression",
 		"multiple characters in a char literal",
 		"empty char literal",
 		"unexpected ','",
@@ -81,7 +93,8 @@ namespace henifig {
 		"expected expression",
 		"unexpected expression",
 		"unknown expression",
-		"unexpected/unknown expression",
+		"couldn't handle the expression",
 		"expected ';' before the '/'",
+		"unknown type reached during the parsing process",
 	};
 }

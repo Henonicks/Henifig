@@ -6,7 +6,7 @@ The name (pronounced as "H*e*n-if-ig") comes from my nickname, Henonicks
 (pronounced as "Hen-*o*h-nicks"), combined with "config".
 This C++ program interprets a given file in this format:
 
-```
+```henifig
 # One-line comment
 [# Multi
    line
@@ -14,26 +14,27 @@ This C++ program interprets a given file in this format:
 #]
 
 # Variable:
-/var \[str\]\ | "\"val" [# the strings will be concatenated. #] "values"
+/var \[str\]\   | "\"val" [# the strings will be concatenated. #] "values"
 #~~~~^~~~~^
 /var \{char\}\  | 'v'
 #~~~~^~~~~~^
 # Escaping needed for the brackets if they're meant as part of the name.
 
-/var int\     | -16
-/var number\  | 1.618
-/var bool\    | true
+/var int\       | -16
+/var number\    | 1.618
+/var bool\      | true
 /declaration\ # can be useful as a runtime "#ifdef" check
 # The type at the end is purely a part of the name.
 
 
 # Array:
-/arr["Try\"", "to", "erase"]\
-
-# Tuple:
-/tuple{"We all must", 'b', "dreaming this life", 8, .67, false}\
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+/arr["Try", 2, "erase", 8, .67, false]\
+#~~~~~~~~~~~~~~~~~~~~~~~~~~^
 # Treated as "0.67".
+
+# Map (name-keyed array):
+/map{$"if there's" | "so much", $"love", $"in this place" | {$"well then" | "why?!"},
+     $"Are we overwhelmed" | ["with", "this", "hate?"]}\
 
 # Multi-declaration:
 /var1\ | "I won't be forsaken"; /var2\ | "The beast has been awakened"
@@ -44,7 +45,15 @@ Otherwise omittable.#]
 
 The indentation was added to "prettify" the pseudo config file.
 It doesn't matter where and how many spaces there are unless they're used as values/keys.
+For example, in the snippet:
 
+```henifig
+/var string\ | "insane concept" [# comment #] "ain't it"
+[#~~^~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+The only spaces taken into account #]
+```
+
+All the non-string spaces are completely ignored.
 This project uses CMake with C++-\<version decided later\>. It is currently in-development so
 a lot of stuff is missing, including most of the functionality, therefore
 this project is not just unstable, but is unusable.

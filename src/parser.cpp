@@ -34,6 +34,7 @@ henifig::parse_report henifig::config::process_parsing() {
 	if (const parse_report report = lex(); report.is_error()) {
 		return report;
 	}
+	parse();
 	return {};
 }
 
@@ -167,21 +168,23 @@ henifig::parse_report henifig::config::remove_comments() {
 henifig::parse_report henifig::config::lex() {
 	std::string line;
 	size_t hanging_var{}, hanging_quote{}, hanging_apostrophe{}, hanging_escape{};
-	std::stack <size_t> hanging_arr, hanging_tuple;
-	std::stack <size_t> hanging_arr_line{}, hanging_tuple_line{};
+	std::stack <size_t> hanging_arr, hanging_map;
+	std::stack <size_t> hanging_arr_line{}, hanging_map_line{};
 	bool is_double{};
 	size_t hanging_comma_line{};
 	std::string value, value_str;
 	bool var_declared{};
 	bool piped{}, afterpipe{};
+	size_t map_keys{}, map_pipes{};
 	error_codes error_code{};
 
 	size_t i;
 	size_t line_num{};
-	auto unexpected_expression = [&]() -> bool {
+	auto unexpected_expression = [&var_declared, &piped, &hanging_var, &hanging_quote,
+	&line, &value, &hanging_apostrophe, &hanging_arr, &hanging_map, &i, &line_num]() -> bool {
 		if ((var_declared && !piped) || (!var_declared && !hanging_var) ||
 		(!hanging_var && !value.empty() &&
-		!hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_tuple.empty()) &&
+		!hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_map.empty()) &&
 
 		(line[i] >= '0' && line[i] <= '9' &&
 		line[i - 1] < '0' && line[i - 1] > '9' &&
@@ -192,6 +195,12 @@ henifig::parse_report henifig::config::lex() {
 			return true;
 		}
 		return false;
+	};
+	auto is_arr = [&hanging_arr, &hanging_map]() -> bool {
+		return !hanging_arr.empty() && (hanging_map.empty() || hanging_arr.top() > hanging_map.top());
+	};
+	auto is_map = [&hanging_arr, &hanging_map]() -> bool {
+		return !hanging_map.empty() && (hanging_arr.empty() || hanging_map.top() > hanging_arr.top());
 	};
 	while (std::getline(parsed_content, line)) {
 		cout << "VALUE STR " << line_num << " `" << value_str << "`\n";
@@ -225,10 +234,10 @@ henifig::parse_report henifig::config::lex() {
 									i = hanging_arr.top();
 									break;
 								}
-								if (!hanging_tuple.empty()) {
-									error_code = HANGING_TUPLE;
-									line_num = hanging_tuple_line.top();
-									i = hanging_tuple.top();
+								if (!hanging_map.empty()) {
+									error_code = HANGING_MAP;
+									line_num = hanging_map_line.top();
+									i = hanging_map.top();
 									break;
 								}
 								values_str.push_back(value);
@@ -282,7 +291,16 @@ henifig::parse_report henifig::config::lex() {
 				}
 			}
 			else if (line[i] == '|') {
-				if (!afterpipe) {
+				if (is_map()) {
+					value += '|';
+					++map_pipes;
+					if (map_keys != map_pipes) {
+						cout << "OOPSIE, MAP KEYS AND PIPES DIFFERENCE " << line_num << ' ' << i << ' ' << map_keys << ' ' << map_pipes << '\n';
+						error_code = PIPED_VALUE;
+						break;
+					}
+				}
+				else if (!afterpipe) {
 					if (!piped) {
 						piped = true;
 						cout << "PIPE HIT, CLEARING " << line_num << ' ' << i << '\n';
@@ -295,35 +313,56 @@ henifig::parse_report henifig::config::lex() {
 						break;
 					}
 				}
-				else {
-					error_code = NAKED_PIPE;
-					break;
-				}
 			}
 			else if (line[i] == '\"' || line[i] == '\'' ||
-			line[i] == '[' || line[i] == ']' || line[i] == '{' || line[i] == '}' || line[i] == ',' ||
+			line[i] == '[' || line[i] == ']' || line[i] == '{' || line[i] == '}' || line[i] == ',' || line[i] == '$' ||
 			((line[i] >= '0' && line[i] <= '9') || line[i] == '.') || (line[i] == 't' || line[i] == 'f') ||
 			line[i] == ' ' || line[i] == '-' || line[i] == '.') {
 				if (line[i] != ' ' && afterpipe) {
 					const bool is_string = hanging_quote || hanging_apostrophe;
-					const bool quote_after_expr = !value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
-					const bool num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.';
-					const bool expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.';
-					const bool expr_after_expr = !isdigit(line[i]) && line[i] != '}' && line[i] != ']' && line[i] != ',' && line[i] != '-' && line[i] != '.' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{';
-					const bool in_arr = !hanging_arr.empty() || !hanging_tuple.empty();
-					const bool comma_in_begin = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
-					const bool comma_in_end = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
-					const bool comma_around_pipe = line[i] == ',' && (var_declared && !piped) || (piped && value.empty());
-					const bool middle_minus = line[i] == '-' && line[i - 1] == '-';
+					bool quote_after_expr{};
+					bool num_after_expr{};
+					bool expr_after_num{};
+					bool expr_after_expr{};
+					bool in_arr{};
+					bool comma_in_begin{};
+					bool comma_in_end{};
+					bool comma_around_pipe{};
+					bool middle_minus{};
 					const bool escaped_num = (isdigit(line[i]) || line[i] == '.' || line[i] == '-') && hanging_escape;
-					const bool hanging_dot = line[i] == '.' && !isdigit(line[i + 1]);
+					bool hanging_dot{};
+					bool hanging_dollar{};
+					bool unexpected_dollar{};
+					bool repeated_dollar{};
+					bool expected_dollar{};
+					bool piped_key{};
+					bool piped_value{};
+					if (!hanging_escape) {
+						quote_after_expr = !value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '|' && (line[i - 1] != '$' || line[i - 1] == '$' && !is_map()) && !hanging_quote;
+						num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.';
+						expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.';
+						expr_after_expr = !isdigit(line[i]) && line[i] != '"' && line[i] != ']' && line[i] != '}' && line[i] != ',' && line[i] != '-' && line[i] != '.' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '|';
+						in_arr = !hanging_arr.empty() || !hanging_map.empty();
+						comma_in_begin = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
+						comma_in_end = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
+						comma_around_pipe = line[i] == ',' && (var_declared && !piped) || (piped && value.empty());
+						middle_minus = line[i] == '-' && line[i - 1] == '-';
+						hanging_dot = line[i] == '.' && !isdigit(line[i + 1]);
+						hanging_dollar = line[i] == '$' && line[i + 1] != '"';
+						unexpected_dollar = line[i] == '$' && (hanging_map.empty() || (!hanging_arr.empty() && hanging_map.top() < hanging_arr.top()));
+						repeated_dollar = line[i] == '$' && line[i - 1] == '$';
+						expected_dollar = line[i] != '$' && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|') && is_map();
+						piped_key = line[i] == '$' && (!value.empty() && *value.rbegin() != '$' && *value.rbegin() != '{' && *value.rbegin() != ',');
+						// piped_value = line[i] == '|' && (map_pipes || (value.empty() || (!value.empty() && *value.rbegin() != '{' && *value.rbegin() != ',')));
+					}
 					// I didn't say I had a lot of tests
-					if (!is_string && (quote_after_expr ||
+					if (!is_string && ((quote_after_expr ||
 					line[i] != '"' && (!value.empty() &&
-					(num_after_expr || expr_after_num || expr_after_expr) ||
-					(in_arr && comma_in_begin || comma_in_end)
+					((num_after_expr || expr_after_num || expr_after_expr) ||
+					(in_arr && comma_in_begin || comma_in_end))
 					) || comma_around_pipe) ||
-					middle_minus || escaped_num || hanging_dot) {
+					middle_minus || escaped_num || hanging_dot ||
+					hanging_dollar || unexpected_dollar || repeated_dollar || expected_dollar || piped_key || piped_value)) {
 						if (quote_after_expr || num_after_expr || expr_after_num || expr_after_expr) {
 							error_code = UNEXPECTED_EXPRESSION;
 						}
@@ -339,6 +378,24 @@ henifig::parse_report henifig::config::lex() {
 						else if (hanging_dot) {
 							error_code = HANGING_DOT;
 						}
+						else if (hanging_dollar) {
+							error_code = HANGING_DOLLAR;
+						}
+						else if (unexpected_dollar) {
+							error_code = UNEXPECTED_DOLLAR;
+						}
+						else if (repeated_dollar) {
+							error_code = REPEATED_DOLLAR;
+						}
+						else if (expected_dollar) {
+							 error_code = EXPECTED_DOLLAR;
+						}
+						else if (piped_key) {
+							error_code = PIPED_KEY;
+						}
+						else if (piped_value) {
+							error_code = PIPED_VALUE;
+						}
 						else {
 							error_code = WRONG_EXPRESSION;
 						}
@@ -351,7 +408,6 @@ henifig::parse_report henifig::config::lex() {
 							hanging_quote = i;
 						}
 						else {
-							value_str.clear();
 							hanging_quote = 0;
 						}
 					}
@@ -397,16 +453,16 @@ henifig::parse_report henifig::config::lex() {
 				}
 				else if (line[i] == '[' || line[i] == ']' || line[i] == '{' || line[i] == '}') {
 					if (line[i] == '[' || line[i] == '{') {
-						if ((piped || afterpipe) && hanging_arr.empty() && hanging_tuple.empty()) {
+						if ((piped || afterpipe) && hanging_arr.empty() && hanging_map.empty()) {
 							if (line[i] == '[') {
 								error_code = UNEXPECTED_ARR;
 							}
 							else {
-								error_code = UNEXPECTED_TUPLE;
+								error_code = UNEXPECTED_MAP;
 							}
 							break;
 						}
-						if (!piped && !hanging_escape && !hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_tuple.empty()) {
+						if (!piped && !hanging_escape && !hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_map.empty()) {
 							cout << "ARRAY AFTERPIPE, PUSHING, CLEARING " << line_num << ' ' << i << " `" << value << "`\n";
 							var_declared = true;
 							piped = true;
@@ -444,8 +500,8 @@ henifig::parse_report henifig::config::lex() {
 								error_code = UNEXPECTED_ARR_END;
 								break;
 							}
-							if (!hanging_tuple.empty() && hanging_tuple.top() > hanging_arr.top()) {
-								error_code = TUPLE_COMPLETED_WITH_ARR;
+							if (!hanging_map.empty() && hanging_map.top() > hanging_arr.top()) {
+								error_code = MAP_COMPLETED_WITH_ARR;
 								break;
 							}
 							if (*value.rbegin() == ',') {
@@ -464,8 +520,8 @@ henifig::parse_report henifig::config::lex() {
 							}
 						}
 						else if (!hanging_escape) {
-							hanging_tuple.push(i);
-							hanging_tuple_line.push(line_num);
+							hanging_map.push(i);
+							hanging_map_line.push(line_num);
 						}
 						else {
 							if (afterpipe) {
@@ -481,33 +537,39 @@ henifig::parse_report henifig::config::lex() {
 							}
 						}
 						else if (!hanging_escape) {
-							if (hanging_tuple.empty()) {
-								error_code = UNEXPECTED_TUPLE_END;
+							if (hanging_map.empty()) {
+								error_code = UNEXPECTED_MAP_END;
 								break;
 							}
-							if (!hanging_arr.empty() && hanging_arr.top() > hanging_tuple.top()) {
-								error_code = TUPLE_COMPLETED_WITH_ARR;
+							if (!hanging_arr.empty() && hanging_arr.top() > hanging_map.top()) {
+								error_code = MAP_COMPLETED_WITH_ARR;
 								break;
 							}
 							if (*value.rbegin() == ',') {
 								error_code = HANGING_COMMA;
 								break;
 							}
-							hanging_tuple.pop();
-							hanging_tuple_line.pop();
+							hanging_map.pop();
+							hanging_map_line.pop();
 						}
 						value += '}';
 					}
 				}
 				else if (line[i] == ',') {
 					if (!hanging_quote && !hanging_apostrophe) {
-						if (hanging_arr.empty() && hanging_tuple.empty()) {
+						if (hanging_arr.empty() && hanging_map.empty()) {
 							error_code = UNEXPECTED_COMMA;
 							break;
 						}
 						if (value.size() > 1 && *value.rbegin() == ',') {
 							error_code = EXPECTED_EXPRESSION;
 							break;
+						}
+						if (is_map()) {
+							if (map_pipes >= map_keys) {
+								--map_pipes;
+							}
+							--map_keys;
 						}
 					}
 					value += ',';
@@ -520,8 +582,8 @@ henifig::parse_report henifig::config::lex() {
 						}
 						i += 4 - 1;
 					}
-					else if ((!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
-						if (!hanging_arr.empty() || !hanging_tuple.empty()) {
+					else if ((!hanging_var || (!hanging_arr.empty() || !hanging_map.empty())) && !hanging_quote && !hanging_apostrophe) {
+						if (!hanging_arr.empty() || !hanging_map.empty()) {
 							error_code = UNEXPECTED_EXPRESSION;
 							break;
 						}
@@ -541,8 +603,8 @@ henifig::parse_report henifig::config::lex() {
 						}
 						i += 5 - 1;
 					}
-					else if ((!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
-						if (!hanging_arr.empty() || !hanging_tuple.empty()) {
+					else if ((!hanging_var || (!hanging_arr.empty() || !hanging_map.empty())) && !hanging_quote && !hanging_apostrophe) {
+						if (!hanging_arr.empty() || !hanging_map.empty()) {
 							error_code = UNKNOWN_EXPRESSION;
 							break;
 						}
@@ -577,8 +639,21 @@ henifig::parse_report henifig::config::lex() {
 					}
 					if ((hanging_var && !var_declared) || (hanging_quote || hanging_apostrophe)) {
 						value += ' ';
-						value_str += ' ';
+						if (hanging_apostrophe) {
+							value_str += ' ';
+						}
 						cout << "ADDING SPACE " << line_num << ' ' << i << '\n';
+					}
+				}
+				else if (line[i] == '$') {
+					if (hanging_quote || hanging_apostrophe) {
+						value += '$';
+						if (hanging_apostrophe) {
+							value_str += '$';
+						}
+					}
+					else if (is_map()) {
+						++map_keys;
 					}
 				}
 				else {
@@ -588,7 +663,7 @@ henifig::parse_report henifig::config::lex() {
 					afterpipe = true;
 				}
 			}
-			else if (line[i] != ';' && (!hanging_var || (!hanging_arr.empty() || !hanging_tuple.empty())) && !hanging_quote && !hanging_apostrophe) {
+			else if (line[i] != ';' && (!hanging_var || (!hanging_arr.empty() || !hanging_map.empty())) && !hanging_quote && !hanging_apostrophe) {
 				cout << "UNKNOWN EXPRESSION\n";
 				error_code = UNKNOWN_EXPRESSION;
 				break;
@@ -620,7 +695,7 @@ henifig::parse_report henifig::config::lex() {
 			}
 			if (line[i] == ';') {
 				if (!hanging_quote && !hanging_apostrophe && !hanging_var) {
-					if (piped && value.empty()) {
+					if (piped && !afterpipe) {
 						error_code = HANGING_PIPE;
 						break;
 					}
@@ -642,7 +717,7 @@ henifig::parse_report henifig::config::lex() {
 		if (error_code != OK) {
 			break;
 		}
-		if (hanging_var && hanging_arr.empty() && hanging_tuple.empty()) {
+		if (hanging_var && hanging_arr.empty() && hanging_map.empty()) {
 			error_code = HANGING_VAR;
 			i = hanging_var;
 		}
@@ -668,9 +743,166 @@ henifig::parse_report henifig::config::lex() {
 		cout << '`' << vars[i] << "` | `" << (values_str.size() > i ? values_str[i] : "") << "`\n";
 	}
 	cout << "----\n";
-	return parse_report(error_code, line_num, i);
+	if (piped && !afterpipe) {
+		error_code = HANGING_PIPE;
+		i -= 2;
+	}
+	return {error_code, line_num, i};
 }
 
 henifig::parse_report henifig::config::parse() {
+	for (size_t i = 0; i < vars.size(); i++) {
+		parse_value(i);
+	}
+	cout << "-------\n";
+	for (const value_variant& x : values) {
+		switch (x.index()) {
+			case declaration: {
+				cout << "<declaration>\n";
+				break;
+			}
+			case string: {
+				cout << "string(" << std::get <std::string>(x) << ")\n";
+				break;
+			}
+			case character: {
+				cout << "character(" << std::get <unsigned char>(x) << ")\n";
+				break;
+			}
+			case number: {
+				cout << "number(" << std::get <double>(x) << ")\n";
+				break;
+			}
+			case boolean: {
+				cout << "boolean(" << (std::get <bool>(x) == 1 ? "true" : "false") << ")\n";
+				break;
+			}
+			default: {
+				cout << "<unknown>\n";
+				return {UNKNOWN_TYPE};
+			}
+		}
+	}
+	cout << "-------\n";
+	return {};
+}
 
+void henifig::config::append(const index_t& index, const value_variant& value) {
+	switch (index.index()) {
+	case VAR_ARR: {
+		const auto& i = std::get <size_t>(index);
+		if (i == NPOS) {
+			values.push_back(value);
+		}
+		else {
+			// TODO
+			arrs.emplace_back();
+		}
+	}
+	case MAP: {
+		// TODO
+	}
+	default: break;
+	}
+}
+
+size_t henifig::config::parse_value(const size_t& var_num, const size_t& pos, const size_t& index) {
+	size_t hanging_escape{};
+	const std::string_view line = values_str[var_num];
+	if (line.empty()) {
+		append(index, declaration_t{});
+		return pos;
+	}
+	size_t i = pos;
+	data_types data_type{};
+	switch (line[i]) {
+		case '"': {
+			std::string value;
+			types.push_back(string);
+			for (++i; i < line.size(); i++) {
+				switch (line[i]) {
+				case '\\': {
+					if (hanging_escape) {
+						value += '\\';
+						hanging_escape = 0;
+					}
+					else {
+						hanging_escape = i;
+					}
+					break;
+				}
+				case '\"': {
+					if (hanging_escape) {
+						hanging_escape = 0;
+						value += line[i];
+					}
+					else {
+						append(index, value);
+						return i;
+					}
+					break;
+				}
+				default: {
+					if (hanging_escape) {
+						hanging_escape = 0;
+						if (line[i] == 'n') {
+							value += '\n';
+						}
+					}
+					else {
+						value += line[i];
+					}
+					break;
+				}
+				}
+			}
+			break;
+		}
+		case '\'': {
+			unsigned char value = line[i + 1];
+			if (value == '\\') {
+				if (line[i + 2] == 'n') {
+					value = '\n';
+				}
+				else {
+					value = line[i + 2];
+				}
+			}
+			append(index, value);
+			return i + 3;
+		}
+		case '0' ... '9': case '-': {
+			std::string value;
+			for (;i < line.size(); i++) {
+				if (isdigit(line[i]) || line[i] == '.' || line[i] == '-') {
+					value += line[i];
+				}
+				else {
+					break;
+				}
+			}
+			append(index, std::stod(value));
+			return i;
+		}
+		case 't': {
+			append(index, true);
+			return i + 4;
+		}
+		case 'f': {
+			append(index, false);
+			return i + 5;
+		}
+		case '[': {
+			data_type = array;
+			break;
+		}
+		case '{': {
+			data_type = map;
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+	return i;
 }

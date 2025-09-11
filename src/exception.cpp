@@ -21,8 +21,9 @@ const char* henifig::parse_exception::what() const noexcept {
 }
 
 henifig::parse_exception::parse_exception(const parse_report& report) {
-	full_error = fmt::format("Parsing error on {0}:{1} - {2} (code: {3}).",
-		report.get_error_line(), report.get_error_index(),
+	full_error = fmt::format("Parsing error on {0} - {1} (code: {2}).",
+		report.get_error_line() == 0 && report.get_error_index() == 0 ? "unknown position" :
+			fmt::format("{0}:{1}", report.get_error_line(), report.get_error_index()),
 		report.get_parse_error(), static_cast<uint16_t>(report.get_error_code())
 	);
 }
