@@ -55,6 +55,8 @@ namespace henifig {
 		WRONG_EXPRESSION,
 		MISSING_SEMICOLON,
 		UNKNOWN_TYPE,
+		REDECLARED_VAR,
+		REDECLARED_KEY,
 	};
 
 	inline const char* error_messages[] = {
@@ -96,5 +98,7 @@ namespace henifig {
 		"couldn't handle the expression",
 		"expected ';' before the '/'",
 		"unknown type reached during the parsing process",
+		"redeclared variable",
+		"redeclared map value key",
 	};
 }

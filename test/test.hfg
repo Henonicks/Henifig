@@ -1,6 +1,8 @@
 /var\
-/var\ | "hello"
-/var\ | 'h'
-/var\ | -1111.1
-/var\ | true
-/var\ | false
+/hello\   | "Hello, " "World!"
+/h\       | 'h'
+/number\  | -1111.1
+/true\    | true
+/false\   | false
+/arr[{$"1" | true, $"2", $"3" | [1, false]}, -.1, 'u', false]\
+#/map{$"I will", $"I will" | ["rise"], $"1" | 2}\

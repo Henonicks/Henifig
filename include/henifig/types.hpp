@@ -21,6 +21,9 @@
 #include <iostream>
 #include <sstream>
 #include <variant>
+#include <map>
+#include <stack>
+
 #include <fmt/format.h>
 
 #include "henifig/errors.hpp"
@@ -30,37 +33,44 @@ namespace henifig {
 	 * @brief All the supported data types.
 	 */
 	enum data_types : uint8_t {
-		declaration = 0,	// undefined, can be used to check if a variable exist in case we don't need it to have a value
-		string = 1,			// "string"
-		character = 2,		// 'char'
-		integer = 3,		// int/long
-		number = 3,			// double
-		boolean = 4,		// bool
-		array = 5,			// [array]
-		map = 6,			// {map}
+		unset,			// nothing
+		declaration,	// undefined, can be used to check if a variable exist in case we don't need it to have a value
+		string,			// "string"
+		character,		// 'char'
+		number,			// double
+		boolean,		// bool
+		array,			// [array]
+		map,			// {map}
 	};
-	enum index_types : bool {
-		VAR_ARR,		// variable/array
+	enum index_types : uint8_t {
+		VAR,			// variable
+		ARR,			// array
 		MAP,			// map
+		ARR_ITEM,		// array item
+		MAP_KEY,		// a key inside a map
+		MAP_VALUE,		// a value inside a map
 	};
 	constexpr size_t NPOS = -1;
 	struct declaration_t{};
-	class array_index {
+	struct unset_t{};
+	struct array_index {
 		size_t index{};
-	public:
-		array_index(const size_t& index) : index(index) {}
 	};
-	class map_index {
+	struct map_index {
 		size_t index{};
-	public:
-		map_index(const size_t& index) : index(index) {}
 	};
 	using index_t = std::variant
 	<size_t, std::string>;
 	// Either an array index or a map key
 
+	struct depth_t {
+		size_t arr_index{NPOS}, map_index{NPOS};
+		index_types index_type{};
+		index_types environment_type{};
+	};
+
 	using value_variant = std::variant
-	<declaration_t, std::string, unsigned char, double, bool, array_index, map_index>;
+	<unset_t, declaration_t, std::string, unsigned char, double, bool, array_index, map_index>;
 	class parse_report {
 		const error_codes error_code{};
 		const size_t error_line{};
@@ -68,7 +78,7 @@ namespace henifig {
 	public:
 		parse_report() = default;
 		parse_report(const error_codes& error_code);
-		parse_report(error_codes error_code, const size_t& error_line, const size_t& error_index);
+		parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index = 0);
 		[[nodiscard]] bool is_error() const noexcept;
 		[[nodiscard]] error_codes get_error_code() const noexcept;
 		[[nodiscard]] const char* get_parse_error() const noexcept;
@@ -80,16 +90,22 @@ namespace henifig {
 		std::vector <std::string> values_str;
 		std::vector <value_variant> values;
 		std::vector <std::vector <value_variant>> arrs;
-		std::vector <std::pair <std::string, value_variant>> maps;
-		std::vector <size_t> values_index;
-		std::vector <data_types> types;
+		std::vector <std::map <std::string, value_variant>> maps;
+		std::map <std::string, size_t> line_nums;
+		std::stack <size_t> arr_indexes, map_indexes;
+		std::map <size_t, std::string> map_keys;
 		std::stringstream content, parsed_content;
 		parse_report process_parsing();
 		parse_report remove_comments();
 		parse_report lex();
 		parse_report parse();
-		size_t parse_value(const size_t& var_num, const size_t& pos = 0, const size_t& index = NPOS);
-		void append(const index_t& index, const value_variant& value);
+		size_t parse_value(const size_t& var_num, const size_t& pos = 0, depth_t depth = {});
+		error_codes append(depth_t& depth, const value_variant& value = declaration_t{});
+		size_t spaces{};
+		error_codes print_value(const value_variant& x);
+		void print_spaces() const;
+		error_codes print_array(const std::vector <value_variant>& x);
+		error_codes print_map(const std::map <std::string, value_variant>& x);
 	public:
 		void operator <<(const std::ifstream& cfg_file);
 	};

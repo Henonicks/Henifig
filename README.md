@@ -43,7 +43,8 @@ Important if you want to declare multiple variables in the same line!
 Otherwise omittable.#]
 ```
 
-The indentation was added to "prettify" the pseudo config file.
+The indentation was added to "prettify" the pseudo config file. It's recommended to use spaces instead of
+tabs, although both are allowed.
 It doesn't matter where and how many spaces there are unless they're used as values/keys.
 For example, in the snippet:
 

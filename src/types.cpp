@@ -16,9 +16,9 @@
 
 #include "henifig/types.hpp"
 
-henifig::parse_report::parse_report(const error_codes& error_code) : error_code(error_code), error_line(0), error_index(0) {}
+henifig::parse_report::parse_report(const error_codes& error_code) : error_code(error_code) {}
 
-henifig::parse_report::parse_report(const error_codes error_code, const size_t& error_line, const size_t& error_index) :
+henifig::parse_report::parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index) :
 error_code(error_code), error_line(error_line), error_index(error_index) {}
 
 bool henifig::parse_report::is_error() const noexcept {

@@ -34,7 +34,9 @@ henifig::parse_report henifig::config::process_parsing() {
 	if (const parse_report report = lex(); report.is_error()) {
 		return report;
 	}
-	parse();
+	if (const parse_report report = parse(); report.is_error()) {
+		return report;
+	}
 	return {};
 }
 
@@ -119,6 +121,11 @@ henifig::parse_report henifig::config::remove_comments() {
 			if (hanging_escape != i) {
 				hanging_escape = 0;
 			}
+			if (line[i] == '	') {
+				if (!hanging_quote && !hanging_apostrophe) {
+					line[i] = ' ';
+				}
+			}
 		}
 		if (std::count(line.begin(), line.end(), ' ') == line.size()) {
 			line.clear();
@@ -162,7 +169,7 @@ henifig::parse_report henifig::config::remove_comments() {
 		i = hanging_comment;
 	}
 	cout << "---\n" << parsed_content.str() << "---\n\n";
-	return parse_report(error_code, line_num, i);
+	return {error_code, line_num, i};
 }
 
 henifig::parse_report henifig::config::lex() {
@@ -175,7 +182,7 @@ henifig::parse_report henifig::config::lex() {
 	std::string value, value_str;
 	bool var_declared{};
 	bool piped{}, afterpipe{};
-	size_t map_keys{}, map_pipes{};
+	size_t map_keys_amount{}, map_pipes_amount{};
 	error_codes error_code{};
 
 	size_t i;
@@ -202,6 +209,16 @@ henifig::parse_report henifig::config::lex() {
 	auto is_map = [&hanging_arr, &hanging_map]() -> bool {
 		return !hanging_map.empty() && (hanging_arr.empty() || hanging_map.top() > hanging_arr.top());
 	};
+	auto line_num_exists = [&value, &line_num, this, &error_code, &i]() -> bool {
+		size_t& num = line_nums[value];
+		if (num) {
+			i -= value.size() + 1;
+			error_code = REDECLARED_VAR;
+			return true;
+		}
+		num = line_num;
+		return false;
+	};
 	while (std::getline(parsed_content, line)) {
 		cout << "VALUE STR " << line_num << " `" << value_str << "`\n";
 		++line_num;
@@ -224,6 +241,9 @@ henifig::parse_report henifig::config::lex() {
 							if (!afterpipe) {
 								cout << "AFTERPIPE PUSHING: " << line_num << ' ' << i << " `" << value << "`\n";
 								vars.push_back(value);
+								if (line_num_exists()) {
+									break;
+								}
 								var_declared = true;
 							}
 							else {
@@ -293,9 +313,9 @@ henifig::parse_report henifig::config::lex() {
 			else if (line[i] == '|') {
 				if (is_map()) {
 					value += '|';
-					++map_pipes;
-					if (map_keys != map_pipes) {
-						cout << "OOPSIE, MAP KEYS AND PIPES DIFFERENCE " << line_num << ' ' << i << ' ' << map_keys << ' ' << map_pipes << '\n';
+					++map_pipes_amount;
+					if (map_keys_amount != map_pipes_amount) {
+						cout << "OOPSIE, MAP KEYS AND PIPES DIFFERENCE " << line_num << ' ' << i << ' ' << map_keys_amount << ' ' << map_pipes_amount << '\n';
 						error_code = PIPED_VALUE;
 						break;
 					}
@@ -339,8 +359,8 @@ henifig::parse_report henifig::config::lex() {
 					bool piped_value{};
 					if (!hanging_escape) {
 						quote_after_expr = !value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '|' && (line[i - 1] != '$' || line[i - 1] == '$' && !is_map()) && !hanging_quote;
-						num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.';
-						expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.';
+						num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.' && *value.rbegin() != '|';
+						expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.' && line[i] != ']' && line[i] != '}';
 						expr_after_expr = !isdigit(line[i]) && line[i] != '"' && line[i] != ']' && line[i] != '}' && line[i] != ',' && line[i] != '-' && line[i] != '.' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '|';
 						in_arr = !hanging_arr.empty() || !hanging_map.empty();
 						comma_in_begin = line[i] == ',' && (*value.rbegin() == '[' || *value.rbegin() == '{');
@@ -353,7 +373,6 @@ henifig::parse_report henifig::config::lex() {
 						repeated_dollar = line[i] == '$' && line[i - 1] == '$';
 						expected_dollar = line[i] != '$' && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|') && is_map();
 						piped_key = line[i] == '$' && (!value.empty() && *value.rbegin() != '$' && *value.rbegin() != '{' && *value.rbegin() != ',');
-						// piped_value = line[i] == '|' && (map_pipes || (value.empty() || (!value.empty() && *value.rbegin() != '{' && *value.rbegin() != ',')));
 					}
 					// I didn't say I had a lot of tests
 					if (!is_string && ((quote_after_expr ||
@@ -363,6 +382,7 @@ henifig::parse_report henifig::config::lex() {
 					) || comma_around_pipe) ||
 					middle_minus || escaped_num || hanging_dot ||
 					hanging_dollar || unexpected_dollar || repeated_dollar || expected_dollar || piped_key || piped_value)) {
+						cout << "BIG-ASS CHECK " << line_num << ' ' << i << '\n';
 						if (quote_after_expr || num_after_expr || expr_after_num || expr_after_expr) {
 							error_code = UNEXPECTED_EXPRESSION;
 						}
@@ -392,9 +412,6 @@ henifig::parse_report henifig::config::lex() {
 						}
 						else if (piped_key) {
 							error_code = PIPED_KEY;
-						}
-						else if (piped_value) {
-							error_code = PIPED_VALUE;
 						}
 						else {
 							error_code = WRONG_EXPRESSION;
@@ -467,6 +484,9 @@ henifig::parse_report henifig::config::lex() {
 							var_declared = true;
 							piped = true;
 							vars.push_back(value);
+							if (line_num_exists()) {
+								break;
+							}
 							value.clear();
 							value_str.clear();
 							is_double = false;
@@ -566,10 +586,10 @@ henifig::parse_report henifig::config::lex() {
 							break;
 						}
 						if (is_map()) {
-							if (map_pipes >= map_keys) {
-								--map_pipes;
+							if (map_pipes_amount >= map_keys_amount) {
+								--map_pipes_amount;
 							}
-							--map_keys;
+							--map_keys_amount;
 						}
 					}
 					value += ',';
@@ -653,7 +673,7 @@ henifig::parse_report henifig::config::lex() {
 						}
 					}
 					else if (is_map()) {
-						++map_keys;
+						++map_keys_amount;
 					}
 				}
 				else {
@@ -743,117 +763,234 @@ henifig::parse_report henifig::config::lex() {
 		cout << '`' << vars[i] << "` | `" << (values_str.size() > i ? values_str[i] : "") << "`\n";
 	}
 	cout << "----\n";
-	if (piped && !afterpipe) {
+	if (error_code == OK && (piped && !afterpipe)) {
 		error_code = HANGING_PIPE;
 		i -= 2;
 	}
 	return {error_code, line_num, i};
 }
 
+henifig::error_codes henifig::config::print_value(const value_variant& x) {
+	switch (x.index()) {
+		case declaration: {
+			cout << "<declaration>\n";
+			break;
+		}
+		case string: {
+			cout << "string(" << std::get <std::string>(x) << ")\n";
+			break;
+		}
+		case character: {
+			cout << "character(" << std::get <unsigned char>(x) << ")\n";
+			break;
+		}
+		case number: {
+			cout << "number(" << std::get <double>(x) << ")\n";
+			break;
+		}
+		case boolean: {
+			cout << "boolean(" << (std::get <bool>(x) == 1 ? "true" : "false") << ")\n";
+			break;
+		}
+		case array: {
+			print_array(arrs[std::get <array_index>(x).index]);
+			break;
+		}
+		case map: {
+			print_map(maps[std::get <map_index>(x).index]);
+			break;
+		}
+		default: {
+			cout << "<unknown>\n";
+			return UNKNOWN_TYPE;
+		}
+	}
+	return OK;
+}
+
+void henifig::config::print_spaces() const {
+	for (int i = 0; i < spaces; i++) {
+		cout << ' ';
+	}
+}
+
+henifig::error_codes henifig::config::print_array(const std::vector <value_variant>& x) {
+	error_codes error_code = OK;
+	cout << "array[";
+	if (x.empty()) {
+		cout << "]\n";
+		return error_code;
+	}
+	cout << '\n';
+	spaces += 2;
+	for (const value_variant& y : x) {
+		print_spaces(); error_code = print_value(y);
+	}
+	spaces -= 2;
+	print_spaces(); cout << "]\n";
+	return error_code;
+}
+
+henifig::error_codes henifig::config::print_map(const std::map <std::string, value_variant>& x) {
+	error_codes error_code = OK;
+	cout << "map{";
+	if (x.empty()) {
+		cout << "}\n";
+		return error_code;
+	}
+	cout << '\n';
+	spaces += 2;
+	for (const auto& y : x) {
+		print_spaces();
+		cout << "key(" << y.first << ") | ";
+		error_code = print_value(y.second);
+	}
+	spaces -= 2;
+	print_spaces(); cout << "}\n";
+	return error_code;
+}
+
 henifig::parse_report henifig::config::parse() {
+	error_codes error_code{};
 	for (size_t i = 0; i < vars.size(); i++) {
 		parse_value(i);
 	}
 	cout << "-------\n";
 	for (const value_variant& x : values) {
-		switch (x.index()) {
-			case declaration: {
-				cout << "<declaration>\n";
-				break;
-			}
-			case string: {
-				cout << "string(" << std::get <std::string>(x) << ")\n";
-				break;
-			}
-			case character: {
-				cout << "character(" << std::get <unsigned char>(x) << ")\n";
-				break;
-			}
-			case number: {
-				cout << "number(" << std::get <double>(x) << ")\n";
-				break;
-			}
-			case boolean: {
-				cout << "boolean(" << (std::get <bool>(x) == 1 ? "true" : "false") << ")\n";
-				break;
-			}
-			default: {
-				cout << "<unknown>\n";
-				return {UNKNOWN_TYPE};
-			}
-		}
+		error_code = print_value(x);
 	}
 	cout << "-------\n";
-	return {};
+	return error_code;
 }
+#define append_to_map(original_value, new_value) \
+	value_variant& map_value_ref = original_value; \
+	if (map_value_ref.index() != unset) { \
+		print_value(original_value); \
+		print_value(new_value); \
+		return REDECLARED_KEY; \
+	} \
+	map_value_ref = new_value
 
-void henifig::config::append(const index_t& index, const value_variant& value) {
-	switch (index.index()) {
-	case VAR_ARR: {
-		const auto& i = std::get <size_t>(index);
-		if (i == NPOS) {
+henifig::error_codes henifig::config::append(depth_t& depth, const value_variant& value) {
+	switch (depth.index_type) {
+		case VAR: {
 			values.push_back(value);
+			break;
 		}
-		else {
-			// TODO
+		case ARR: {
+			if (depth.environment_type == VAR) {
+				values.emplace_back(array_index{arrs.size()});
+			}
+			else if (depth.environment_type == ARR) {
+				arrs[arr_indexes.top()].emplace_back(array_index{arrs.size()});
+			}
+			else {
+				maps[map_indexes.top()][map_keys[depth.map_index]] = array_index{arrs.size()};
+			}
+			arr_indexes.push(arrs.size());
 			arrs.emplace_back();
+			depth.environment_type = ARR;
+			break;
 		}
+		case MAP: {
+			if (depth.environment_type == VAR) {
+				values.emplace_back(map_index{maps.size()});
+			}
+			else if (depth.environment_type == ARR) {
+				arrs[arr_indexes.top()].emplace_back(map_index{maps.size()});
+			}
+			else {
+				maps[map_indexes.top()][map_keys[depth.map_index]] = map_index{maps.size()};
+			}
+			map_indexes.push(maps.size());
+			maps.emplace_back();
+			depth.environment_type = MAP;
+			break;
+		}
+		case ARR_ITEM: {
+			arrs[arr_indexes.top()].emplace_back(value);
+			break;
+		}
+		case MAP_KEY: {
+			cout << "MAP_KEY " << depth.map_index << ' ';
+			print_value(value);
+			append_to_map(maps[map_indexes.top()][std::get <std::string>(value)], declaration_t{});
+			map_keys[depth.map_index] = std::get <std::string>(value);
+			break;
+		}
+		case MAP_VALUE: {
+			cout << "MAP_VALUE " << depth.map_index << ' ' << map_keys[depth.map_index] << ' ';
+			print_value(value);
+			maps[map_indexes.top()][map_keys[depth.map_index]] = value;
+			break;
+		}
+		default: break;
 	}
-	case MAP: {
-		// TODO
-	}
-	default: break;
-	}
+	return OK;
 }
 
-size_t henifig::config::parse_value(const size_t& var_num, const size_t& pos, const size_t& index) {
-	size_t hanging_escape{};
+#undef append_to_map
+
+#define appender(depth, value) \
+	error_codes error_code = append(depth, value); \
+	if (error_code != OK) \
+		throw parse_exception(parse_report(error_code, line_nums[vars[var_num]])) \
+
+#define container_appender(depth) \
+	appender(depth, unset_t{})
+
+size_t henifig::config::parse_value(const size_t& var_num, const size_t& pos, depth_t depth) {
 	const std::string_view line = values_str[var_num];
-	if (line.empty()) {
-		append(index, declaration_t{});
+	if (pos >= line.size()) {
+		if (pos == 0) {
+			append(depth);
+		}
 		return pos;
 	}
 	size_t i = pos;
-	data_types data_type{};
 	switch (line[i]) {
 		case '"': {
+			size_t hanging_escape{};
 			std::string value;
-			types.push_back(string);
 			for (++i; i < line.size(); i++) {
 				switch (line[i]) {
-				case '\\': {
-					if (hanging_escape) {
-						value += '\\';
-						hanging_escape = 0;
-					}
-					else {
-						hanging_escape = i;
-					}
-					break;
-				}
-				case '\"': {
-					if (hanging_escape) {
-						hanging_escape = 0;
-						value += line[i];
-					}
-					else {
-						append(index, value);
-						return i;
-					}
-					break;
-				}
-				default: {
-					if (hanging_escape) {
-						hanging_escape = 0;
-						if (line[i] == 'n') {
-							value += '\n';
+					case '\\': {
+						if (hanging_escape) {
+							value += '\\';
+							hanging_escape = 0;
 						}
+						else {
+							hanging_escape = i;
+						}
+						break;
 					}
-					else {
-						value += line[i];
+					case '"': {
+						if (hanging_escape) {
+							hanging_escape = 0;
+							value += line[i];
+						}
+						else {
+							if (i < line.size() - 1 && line[i + 1] == '"') {
+								++i;
+								break;
+							}
+							appender(depth, value);
+							return parse_value(var_num, i + 1, depth);
+						}
+						break;
 					}
-					break;
-				}
+					default: {
+						if (hanging_escape) {
+							hanging_escape = 0;
+							if (line[i] == 'n') {
+								value += '\n';
+							}
+						}
+						else {
+							value += line[i];
+						}
+						break;
+					}
 				}
 			}
 			break;
@@ -868,8 +1005,8 @@ size_t henifig::config::parse_value(const size_t& var_num, const size_t& pos, co
 					value = line[i + 2];
 				}
 			}
-			append(index, value);
-			return i + 3;
+			appender(depth, value);
+			return parse_value(var_num, i + 4, depth);
 		}
 		case '0' ... '9': case '-': {
 			std::string value;
@@ -881,28 +1018,57 @@ size_t henifig::config::parse_value(const size_t& var_num, const size_t& pos, co
 					break;
 				}
 			}
-			append(index, std::stod(value));
-			return i;
+			appender(depth, std::stod(value));
+			return parse_value(var_num, i, depth);
 		}
 		case 't': {
-			append(index, true);
-			return i + 4;
+			appender(depth, true);
+			return parse_value(var_num, i + 4, depth);
 		}
 		case 'f': {
-			append(index, false);
-			return i + 5;
+			appender(depth, false);
+			return parse_value(var_num, i + 5, depth);
 		}
 		case '[': {
-			data_type = array;
-			break;
+			depth_t new_depth = depth;
+			++new_depth.arr_index;
+			new_depth.index_type = ARR;
+			container_appender(new_depth);
+			new_depth.index_type = ARR_ITEM;
+			size_t new_pos = parse_value(var_num, pos + 1, new_depth);
+			return parse_value(var_num, new_pos, depth);
 		}
 		case '{': {
-			data_type = map;
-			break;
+			depth_t new_depth = depth;
+			++new_depth.map_index;
+			new_depth.index_type = MAP;
+			container_appender(new_depth);
+			new_depth.index_type = MAP_KEY;
+			size_t new_pos = parse_value(var_num, pos + 1, new_depth);
+			return parse_value(var_num, new_pos, depth);
 		}
-		default: {
-			break;
+		case ',': {
+			if (depth.index_type == MAP_VALUE) {
+				depth.index_type = MAP_KEY;
+			}
+			return parse_value(var_num, pos + 1, depth);
 		}
+		case '|': {
+			depth.index_type = MAP_VALUE;
+			return parse_value(var_num, pos + 1, depth);
+		}
+		case ']': {
+			arr_indexes.pop();
+			return i + 1;
+		}
+		case '}': {
+			map_indexes.pop();
+			return i + 1;
+		}
+		default: break;
 	}
 	return i;
 }
+
+#undef appender
+#undef container_appender
