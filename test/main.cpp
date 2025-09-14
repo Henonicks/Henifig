@@ -20,8 +20,6 @@
 
 int main() {
 	henifig::process_logger::set_enabled(true);
-	henifig::config cfg;
-	std::ifstream cfg_file("../test.hfg");
-	cfg << cfg_file;
+	henifig::config cfg("../test.hfg");
 	return 0;
 }

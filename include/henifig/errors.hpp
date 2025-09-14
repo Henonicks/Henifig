@@ -57,6 +57,7 @@ namespace henifig {
 		UNKNOWN_TYPE,
 		REDECLARED_VAR,
 		REDECLARED_KEY,
+		FILE_OPEN_FAILED,
 	};
 
 	inline const char* error_messages[] = {
@@ -100,5 +101,6 @@ namespace henifig {
 		"unknown type reached during the parsing process",
 		"redeclared variable",
 		"redeclared map value key",
+		"failed to open the file"
 	};
 }

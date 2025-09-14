@@ -75,17 +75,20 @@ namespace henifig {
 		const error_codes error_code{};
 		const size_t error_line{};
 		const size_t error_index{};
+		const std::string error_details;
 	public:
 		parse_report() = default;
 		parse_report(const error_codes& error_code);
-		parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index = 0);
+		parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index = 0, std::string_view error_details = "");
 		[[nodiscard]] bool is_error() const noexcept;
 		[[nodiscard]] error_codes get_error_code() const noexcept;
 		[[nodiscard]] const char* get_parse_error() const noexcept;
 		[[nodiscard]] size_t get_error_line() const noexcept;
 		[[nodiscard]] size_t get_error_index() const noexcept;
+		[[nodiscard]] std::string_view get_parse_error_details() const noexcept;
 	};
 	class config {
+		std::string filename;
 		std::vector <std::string> vars;
 		std::vector <std::string> values_str;
 		std::vector <value_variant> values;
@@ -107,6 +110,9 @@ namespace henifig {
 		error_codes print_array(const std::vector <value_variant>& x);
 		error_codes print_map(const std::map <std::string, value_variant>& x);
 	public:
+		config() = default;
+		explicit config(std::string_view filename);
+		void operator <<(std::string_view new_content);
 		void operator <<(const std::ifstream& cfg_file);
 	};
 }

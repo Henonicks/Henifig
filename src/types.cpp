@@ -18,8 +18,8 @@
 
 henifig::parse_report::parse_report(const error_codes& error_code) : error_code(error_code) {}
 
-henifig::parse_report::parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index) :
-error_code(error_code), error_line(error_line), error_index(error_index) {}
+henifig::parse_report::parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index, const std::string_view error_details) :
+error_code(error_code), error_line(error_line), error_index(error_index), error_details(error_details) {}
 
 bool henifig::parse_report::is_error() const noexcept {
 	return error_code != OK;
@@ -39,4 +39,8 @@ size_t henifig::parse_report::get_error_line() const noexcept {
 
 size_t henifig::parse_report::get_error_index() const noexcept {
 	return error_index;
+}
+
+std::string_view henifig::parse_report::get_parse_error_details() const noexcept {
+	return error_details;
 }

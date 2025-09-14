@@ -17,14 +17,28 @@
 #include "henifig/parser.hpp"
 #include "henifig/internal/logger.hpp"
 
-void henifig::config::operator <<(const std::ifstream& cfg_file) {
+henifig::config::config(const std::string_view filename) : filename(filename) {
+	std::ifstream cfg_file(filename.data());
+	if (!cfg_file.is_open()) {
+		throw parse_exception(parse_report(FILE_OPEN_FAILED, 0, 0, filename));
+	}
+	*this << cfg_file;
+}
+
+void henifig::config::operator <<(const std::string_view new_content) {
 	content.str(std::string());
-	content << cfg_file.rdbuf() << '\n';
+	content << new_content;
 	if (const parse_report report = process_parsing(); report.is_error()) {
 		content.str(std::string());
 		parsed_content.str(std::string());
 		throw parse_exception(report);
 	}
+}
+
+void henifig::config::operator <<(const std::ifstream& cfg_file) {
+	std::stringstream new_content;
+	new_content << cfg_file.rdbuf() << '\n';
+	*this << new_content.str();
 }
 
 henifig::parse_report henifig::config::process_parsing() {
