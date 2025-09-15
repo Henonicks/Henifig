@@ -16,27 +16,11 @@
 
 #pragma once
 
-#include <vector>
-#include <variant>
-#include <tuple>
+#include <henifig/types.hpp>
 
-#include "henifig/types.hpp"
-#include "henifig/exception.hpp"
-#include "henifig/parser.hpp"
-
-namespace henifig {
-	class process_logger {
-		static bool LOG_PROCESS;
-	public:
-		static void set_enabled(const bool& enabled) {
-			LOG_PROCESS = enabled;
-		}
-		[[nodiscard]] static bool is_enabled() {
-			return LOG_PROCESS;
-		}
-		process_logger(const process_logger&) = delete;
-		process_logger& operator=(const process_logger&) = delete;
-		process_logger(process_logger&&) = delete;
-		process_logger& operator=(process_logger&&) = delete;
-	};
+namespace std {
+	template <typename T>
+	const T& get(const henifig::value_t& variant) {
+		return variant.get <T>();
+	}
 }

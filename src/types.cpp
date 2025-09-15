@@ -14,6 +14,8 @@
  * limitations under the License.
 ***************************************************************************/
 
+#include <utility>
+
 #include "henifig/types.hpp"
 
 henifig::parse_report::parse_report(const error_codes& error_code) : error_code(error_code) {}
@@ -44,3 +46,34 @@ size_t henifig::parse_report::get_error_index() const noexcept {
 std::string_view henifig::parse_report::get_parse_error_details() const noexcept {
 	return error_details;
 }
+
+henifig::value_t::value_t(value_variant value) : value(std::move(value)) {}
+
+std::size_t henifig::value_t::index() const {
+	return value.index();
+}
+
+henifig::value_t::operator const henifig::value_variant&() const {
+	return value;
+}
+
+henifig::array_t::operator const value_array&() const {
+	return cfg->get_arr(index);
+}
+
+const std::vector <henifig::value_t>& henifig::array_t::get() const {
+	return cfg->get_arr(index);
+}
+
+henifig::map_t::operator const value_map&() const {
+	return cfg->get_map(index);
+}
+
+const henifig::value_map& henifig::map_t::get() const {
+	return cfg->get_map(index);
+}
+
+bool henifig::value_t::isdef() const {
+	return value.index() == declaration;
+}
+

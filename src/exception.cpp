@@ -21,14 +21,19 @@ const char* henifig::parse_exception::what() const noexcept {
 }
 
 henifig::parse_exception::parse_exception(const parse_report& report) {
-	full_error = fmt::format("Parsing error on {0} - {1} (code: {2}).",
-		report.get_error_line() == 0 && report.get_error_index() == 0 ? "<position not given>" :
-		report.get_error_index() == 0 ?
-			fmt::format("line {}", report.get_error_line()) :
-			fmt::format("{0}:{1}", report.get_error_line(), report.get_error_index()),
-		fmt::format("{0}{1}",
-			report.get_parse_error(),
-			!report.get_parse_error_details().empty() ? fmt::format(" ({})", report.get_parse_error_details()) : ""),
-		static_cast <uint16_t>(report.get_error_code())
-	);
+	full_error = std::string("Parsing error on ") +
+		(report.get_error_line() == 0 && report.get_error_index() == 0 ? "<position not given>" :
+		(report.get_error_index() == 0 ?
+			std::to_string(report.get_error_line()) :
+			std::to_string(report.get_error_line()) + ':' + std::to_string(report.get_error_index())) +
+		" - " +
+			report.get_parse_error() +
+			(!report.get_parse_error_details().empty() ? std::string(" (") + report.get_parse_error_details().data() + ')' : std::string{}) +
+		std::string(" (code: ") + std::to_string(report.get_error_code()) + ").");
 }
+
+const char* henifig::retrieval_exception::what() const noexcept {
+	return full_error.c_str();
+}
+
+henifig::retrieval_exception::retrieval_exception(const std::string_view error) : full_error(error) {}

@@ -22,7 +22,5 @@
 #include <stack>
 #include <variant>
 
-#include <fmt/format.h>
-
 #include "henifig/types.hpp"
 #include "henifig/exception.hpp"

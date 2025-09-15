@@ -26,4 +26,11 @@ namespace henifig {
 		explicit parse_exception(const parse_report& report);
 		[[nodiscard]] const char* what() const noexcept override;
 	};
+	class retrieval_exception final : public std::exception {
+		std::string full_error;
+	public:
+		retrieval_exception() = default;
+		explicit retrieval_exception(std::string_view error);
+		[[nodiscard]] const char* what() const noexcept override;
+	};
 }

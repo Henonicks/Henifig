@@ -14,7 +14,6 @@
  * limitations under the License.
 ***************************************************************************/
 
-
 #include "henifig/henifig.hpp"
 
 bool henifig::process_logger::LOG_PROCESS;

@@ -16,15 +16,16 @@
 
 #pragma once
 
+#include <cstdint>
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include <sstream>
 #include <variant>
 #include <map>
 #include <stack>
-
-#include <fmt/format.h>
+#include <type_traits>
 
 #include "henifig/errors.hpp"
 
@@ -53,24 +54,83 @@ namespace henifig {
 	constexpr size_t NPOS = -1;
 	struct declaration_t{};
 	struct unset_t{};
-	struct array_index {
-		size_t index{};
-	};
-	struct map_index {
-		size_t index{};
-	};
-	using index_t = std::variant
-	<size_t, std::string>;
-	// Either an array index or a map key
+	class config_t;
+	struct array_t;
+	struct map_t;
+	class value_t;
 
+	using value_variant = std::variant
+	<unset_t, declaration_t, std::string, char, double, bool, array_t, map_t>;
+
+	using value_array = std::vector <value_t>;
+	using value_map = std::map <std::string, value_t>;
+
+	struct array_t {
+		size_t index{};
+		const config_t* cfg{};
+		operator const value_array&() const;
+		[[nodiscard]] const value_array& get() const;
+	};
+	struct map_t {
+		size_t index{};
+		const config_t* cfg{};
+		operator const value_map&() const;
+		[[nodiscard]] const value_map& get() const;
+	};
+	class value_t {
+	public:
+		value_variant value;
+		value_t() = default;
+		value_t(value_variant value);
+		template <typename T>
+		value_t(T value) : value(std::move(value)) {}
+		operator const value_variant&() const;
+		template <typename T>
+		[[nodiscard]] const T& get() const {
+			if constexpr (std::is_same <T, value_array>()) {
+				return std::get <array_t>(value);
+			}
+			else if constexpr (std::is_same <T, value_map>()) {
+				return std::get <map_t>(value);
+			}
+			else {
+				return std::get <T>(value);
+			}
+		}
+		template <typename T>
+		[[nodiscard]] operator T() const {
+			return get <T>();
+		}
+		template <typename T>
+		value_t& operator =(const T& val) {
+			value = val;
+			return *this;
+		}
+		template <typename T>
+		bool operator ==(const T& val) const {
+			return this->get <T>() == val;
+		}
+		template <typename T>
+		bool operator !=(const T& val) const {
+			return this->get <T>() != val;
+		}
+		[[nodiscard]] std::size_t index() const;
+		[[nodiscard]] bool isdef() const;
+		template <typename T>
+		[[nodiscard]] bool is() const {
+			return std::holds_alternative <T>(value);
+		}
+		template <typename T>
+		[[nodiscard]] bool isnt() const {
+			return !std::holds_alternative <T>(value);
+		}
+	};
 	struct depth_t {
 		size_t arr_index{NPOS}, map_index{NPOS};
 		index_types index_type{};
 		index_types environment_type{};
 	};
 
-	using value_variant = std::variant
-	<unset_t, declaration_t, std::string, unsigned char, double, bool, array_index, map_index>;
 	class parse_report {
 		const error_codes error_code{};
 		const size_t error_line{};
@@ -87,13 +147,15 @@ namespace henifig {
 		[[nodiscard]] size_t get_error_index() const noexcept;
 		[[nodiscard]] std::string_view get_parse_error_details() const noexcept;
 	};
-	class config {
+	class config_t {
+		const config_t* cfg_self = this;
 		std::string filename;
 		std::vector <std::string> vars;
+		std::map <std::string, size_t> var_nums;
 		std::vector <std::string> values_str;
-		std::vector <value_variant> values;
-		std::vector <std::vector <value_variant>> arrs;
-		std::vector <std::map <std::string, value_variant>> maps;
+		value_array values;
+		std::vector <value_array> arrs;
+		std::vector <value_map> maps;
 		std::map <std::string, size_t> line_nums;
 		std::stack <size_t> arr_indexes, map_indexes;
 		std::map <size_t, std::string> map_keys;
@@ -103,16 +165,20 @@ namespace henifig {
 		parse_report lex();
 		parse_report parse();
 		size_t parse_value(const size_t& var_num, const size_t& pos = 0, depth_t depth = {});
-		error_codes append(depth_t& depth, const value_variant& value = declaration_t{});
+		error_codes append(depth_t& depth, const value_t& value = declaration_t{});
 		size_t spaces{};
-		error_codes print_value(const value_variant& x);
 		void print_spaces() const;
-		error_codes print_array(const std::vector <value_variant>& x);
-		error_codes print_map(const std::map <std::string, value_variant>& x);
+		error_codes print_array(const value_array& x);
+		error_codes print_map(const value_map& x);
 	public:
-		config() = default;
-		explicit config(std::string_view filename);
+		config_t() = default;
+		explicit config_t(std::string_view filename);
 		void operator <<(std::string_view new_content);
 		void operator <<(const std::ifstream& cfg_file);
+		error_codes print_value(const value_t& x);
+		const value_t& operator [](std::string_view key);
+		const value_array& get_arr(const size_t& index) const;
+		const value_map& get_map(const size_t& index) const;
 	};
+
 }
