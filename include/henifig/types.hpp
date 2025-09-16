@@ -140,16 +140,18 @@ namespace henifig {
 		const error_codes error_code{};
 		const size_t error_line{};
 		const size_t error_index{};
+		const std::string error_filename;
 		const std::string error_details;
 	public:
 		parse_report() = default;
-		parse_report(const error_codes& error_code);
-		parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index = 0, std::string_view error_details = "");
+		parse_report(const error_codes& error_code, std::string_view error_filename);
+		parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index = 0, std::string_view error_filename = "", std::string_view error_details = "");
 		[[nodiscard]] bool is_error() const noexcept;
 		[[nodiscard]] error_codes get_error_code() const noexcept;
 		[[nodiscard]] const char* get_parse_error() const noexcept;
 		[[nodiscard]] size_t get_error_line() const noexcept;
 		[[nodiscard]] size_t get_error_index() const noexcept;
+		[[nodiscard]] std::string_view get_error_filename() const noexcept;
 		[[nodiscard]] std::string_view get_parse_error_details() const noexcept;
 	};
 	class config_t {

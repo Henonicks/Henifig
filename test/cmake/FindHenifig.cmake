@@ -14,7 +14,7 @@
 
 find_path(HENIFIG_INCLUDE_DIR NAMES henifig/henifig.hpp HINTS "../include")
 
-find_library(HENIFIG_LIBRARIES NAMES henifig "libhenifig.a" HINTS "../build")
+find_library(HENIFIG_LIBRARIES NAMES henifig "libhenifig" HINTS "../build")
 
 include(FindPackageHandleStandardArgs)
 
