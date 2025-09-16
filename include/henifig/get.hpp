@@ -20,7 +20,7 @@
 
 namespace std {
 	template <typename T>
-	const T& get(const henifig::value_t& variant) {
+	T get(const henifig::value_t& variant) {
 		return variant.get <T>();
 	}
 }

@@ -86,8 +86,11 @@ namespace henifig {
 		value_t(T value) : value(std::move(value)) {}
 		operator const value_variant&() const;
 		template <typename T>
-		[[nodiscard]] const T& get() const {
-			if constexpr (std::is_same <T, value_array>()) {
+		[[nodiscard]] T get() const {
+			if constexpr (std::is_convertible <T, double>() && !std::is_same <T, bool>() && !std::is_same <T, char>()) {
+				return std::get <double>(value);
+			}
+			else if constexpr (std::is_same <T, value_array>()) {
 				return std::get <array_t>(value);
 			}
 			else if constexpr (std::is_same <T, value_map>()) {
@@ -107,22 +110,24 @@ namespace henifig {
 			return *this;
 		}
 		template <typename T>
-		bool operator ==(const T& val) const {
-			return this->get <T>() == val;
+		bool operator ==(T val) const {
+			if constexpr (std::is_same <T, const char*>()) {
+				return this->get <std::string>() == val;
+			}
+			else {
+				return this->get <T>() == val;
+			}
 		}
 		template <typename T>
 		bool operator !=(const T& val) const {
-			return this->get <T>() != val;
+			return !(*this == val);
 		}
 		[[nodiscard]] std::size_t index() const;
 		[[nodiscard]] bool isdef() const;
+		[[nodiscard]] bool isndef() const;
 		template <typename T>
 		[[nodiscard]] bool is() const {
 			return std::holds_alternative <T>(value);
-		}
-		template <typename T>
-		[[nodiscard]] bool isnt() const {
-			return !std::holds_alternative <T>(value);
 		}
 	};
 	struct depth_t {
@@ -180,5 +185,4 @@ namespace henifig {
 		const value_array& get_arr(const size_t& index) const;
 		const value_map& get_map(const size_t& index) const;
 	};
-
 }

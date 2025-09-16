@@ -22,20 +22,22 @@
 int main() {
 	henifig::process_logger::set_enabled(true);
 	henifig::config_t cfg("../test.hfg");
-	std::vector <std::function <bool()>> tests = {
+	const std::vector <std::function <bool()>> tests = {
 		[&cfg]() -> bool {
 			try {
 				return cfg["decl"].isdef();
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
 		[&cfg]() -> bool {
 			try {
-				return cfg["hello"] == std::string("Hello, World!");
+				return cfg["hello"] == "Hello, World!";
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
@@ -43,7 +45,8 @@ int main() {
 			try {
 				return cfg["h"] == 'h';
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
@@ -51,7 +54,8 @@ int main() {
 			try {
 				return cfg["number"] == -1111.1;
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
@@ -59,7 +63,8 @@ int main() {
 			try {
 				return cfg["true"] == true;
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
@@ -67,57 +72,59 @@ int main() {
 			try {
 				return cfg["false"] == false;
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
 		[&cfg]() -> bool {
 			try {
 				const henifig::value_array& arr = cfg["arr"];
-				if (arr.size() != 4 || arr[0].isnt <henifig::map_t>()) {
+				if (arr.size() != 4 || !arr[0].is <henifig::map_t>()) {
 					return false;
 				}
-				henifig::value_map map = arr[0];
+				const henifig::value_map& map = arr[0];
 				if (map.size() != 3) {
 					return false;
 				}
-				if (map["1"] != true && map["2"].isnt <henifig::map_t>()) {
+				if (map.at("1") != true || map.at("2").isndef()) {
 					return false;
 				}
-				henifig::value_array arr2 = map["3"];
+				const henifig::value_array& arr2 = map.at("3");
 				if (arr2.size() != 2) {
 					return false;
 				}
-				if (arr2[0] != 1.0 && arr2[1] != false) {
+				if (arr2[0] != 1 || arr2[1] != false) {
 					return false;
 				}
-				if (arr[1] != -.1 && arr[2] != 'u' && arr[2] != false) {
+				if (arr[1] != -.1 || arr[2] != 'u' || arr[3] != false) {
 					return false;
 				}
 				return true;
 			}
-			catch (...) {
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
 		[&cfg]() -> bool {
 			try {
-				henifig::value_map map = cfg["map"];
+				const henifig::value_map& map = cfg["map"];
 				if (map.size() != 2) {
 					henifig::cout << "map size: " << map.size() << '\n';
 					return false;
 				}
-				henifig::value_array arr = map["I will"];
+				const henifig::value_array& arr = map.at("I will");
 				if (arr.size() != 1) {
 					henifig::cout << "arr size: " << arr.size() << '\n';
 					return false;
 				}
-				if (arr[0] != std::string("rise")) {
+				if (arr[0] != "rise") {
 					henifig::cout << "arr[0] is "; cfg.print_value(arr[0]);
 					return false;
 				}
-				if (map["1"] != 2.0) {
-					henifig::cout << "map[\"1\"] is "; cfg.print_value(map["1"]);
+				if (map.at("1") != 2) {
+					henifig::cout << "map[\"1\"] is "; cfg.print_value(map.at("1"));
 					return false;
 				}
 				return true;

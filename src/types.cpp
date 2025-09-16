@@ -77,3 +77,6 @@ bool henifig::value_t::isdef() const {
 	return value.index() == declaration;
 }
 
+bool henifig::value_t::isndef() const {
+	return value.index() != declaration;
+}

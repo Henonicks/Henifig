@@ -932,7 +932,7 @@ henifig::error_codes henifig::config_t::append(depth_t& depth, const value_t& va
 			cout << "MAP_KEY " << depth.map_index << ' ';
 			print_value(value);
 			append_to_map(maps[map_indexes.top()][value.get <std::string>()], declaration_t{});
-			map_keys[depth.map_index] = static_cast <std::string>(value);
+			map_keys[depth.map_index] = value.get <std::string>();
 			break;
 		}
 		case MAP_VALUE: {
