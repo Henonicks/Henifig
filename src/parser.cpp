@@ -233,7 +233,6 @@ henifig::parse_report henifig::config_t::lex() {
 		}
 		num = line_num;
 		var_nums[value] = vars.size() - 1;
-		std::cout << "SOMEONE PLEASE PROVE ME WRONG " << value << ' ' << var_nums[value] << ' ' << *vars.rbegin() << '\n';
 		return false;
 	};
 	while (std::getline(parsed_content, line)) {
@@ -960,14 +959,7 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 	const std::string_view line = values_str[var_num];
 	if (pos >= line.size()) {
 		if (pos == 0) {
-			if (var_num == 0) {
-				std::cout << pos << ' ' << line.size() << ' ' << values.size() << '\n';
-			}
 			append(depth, declaration_t{});
-			if (var_num == 0) {
-				std::cout << values.size() << ' ';
-				print_value(values[0]);
-			}
 		}
 		return pos;
 	}

@@ -111,36 +111,36 @@ int main() {
 			try {
 				const henifig::value_map& map = cfg["map"];
 				if (map.size() != 2) {
-					henifig::cout << "map size: " << map.size() << '\n';
+					std::cout << "map size: " << map.size() << '\n';
 					return false;
 				}
 				const henifig::value_array& arr = map.at("I will");
 				if (arr.size() != 1) {
-					henifig::cout << "arr size: " << arr.size() << '\n';
+					std::cout << "arr size: " << arr.size() << '\n';
 					return false;
 				}
 				if (arr[0] != "rise") {
-					henifig::cout << "arr[0] is "; cfg.print_value(arr[0]);
+					std::cout << "arr[0] is "; cfg.print_value(arr[0]);
 					return false;
 				}
 				if (map.at("1") != 2) {
-					henifig::cout << "map[\"1\"] is "; cfg.print_value(map.at("1"));
+					std::cout << "map[\"1\"] is "; cfg.print_value(map.at("1"));
 					return false;
 				}
 				return true;
 			}
 			catch (const std::exception& e) {
-				henifig::cout << '\n' << e.what() << '\n';
+				std::cout << '\n' << e.what() << '\n';
 				return false;
 			}
 		},
 	};
 	int failed{};
 	for (int i = 0; i < tests.size(); i++) {
-		henifig::cout << "Test № " << std::to_string(i + 1) << "  ";
+		std::cout << "Test № " << std::to_string(i + 1) << "  ";
 		const bool passed{tests[i]()};
 		failed += !passed;
-		henifig::cout << (passed ? "\nPASSED" : "FAILED") << '\n';
+		std::cout << (passed ? "\nPASSED" : "FAILED") << '\n';
 	}
 	std::cout << '\n' << (!failed ? "ALL TESTS PASSED" : "TESTS FAILED") << '\n';
 	return 0;
