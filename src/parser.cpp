@@ -184,7 +184,7 @@ henifig::parse_report henifig::config_t::remove_comments() {
 		i = hanging_comment;
 	}
 	cout << "---\n" << parsed_content.str() << "---\n\n";
-	return {error_code, line_num, i};
+	return {error_code, line_num, i, filename};
 }
 
 henifig::parse_report henifig::config_t::lex() {
@@ -783,7 +783,7 @@ henifig::parse_report henifig::config_t::lex() {
 		error_code = HANGING_PIPE;
 		i -= 2;
 	}
-	return {error_code, line_num, i};
+	return {error_code, line_num, i, filename};
 }
 
 henifig::error_codes henifig::config_t::print_value(const value_t& x) {
@@ -876,7 +876,7 @@ henifig::parse_report henifig::config_t::parse() {
 		error_code = print_value(x);
 	}
 	cout << "-------\n";
-	return error_code;
+	return {error_code, filename};
 }
 #define append_to_map(original_value, new_value) \
 	value_t& map_value_ref = original_value; \
@@ -950,7 +950,7 @@ henifig::error_codes henifig::config_t::append(depth_t& depth, const value_t& va
 #define appender(depth, value) \
 	error_codes error_code = append(depth, value); \
 	if (error_code != OK) \
-		throw parse_exception(parse_report(error_code, line_nums[vars[var_num]])) \
+		throw parse_exception(parse_report(error_code, line_nums[vars[var_num]], 0, filename)) \
 
 #define container_appender(depth) \
 	appender(depth, unset_t{})

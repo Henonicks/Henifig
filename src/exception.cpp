@@ -21,7 +21,9 @@ const char* henifig::parse_exception::what() const noexcept {
 }
 
 henifig::parse_exception::parse_exception(const parse_report& report) {
-	full_error = std::string("Parsing error on ") +
+	full_error = std::string("Parsing error") +
+		(!report.get_error_filename().empty() ? std::string(" in `") + report.get_error_filename().data() + '`' : "") +
+		" on " +
 		(report.get_error_line() == 0 && report.get_error_index() == 0 ? "<position not given>" :
 		(report.get_error_index() == 0 ?
 			std::to_string(report.get_error_line()) :
