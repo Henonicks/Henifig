@@ -27,11 +27,11 @@ henifig::parse_exception::parse_exception(const parse_report& report) {
 		(report.get_error_line() == 0 && report.get_error_index() == 0 ? "<position not given>" :
 		(report.get_error_index() == 0 ?
 			std::to_string(report.get_error_line()) :
-			std::to_string(report.get_error_line()) + ':' + std::to_string(report.get_error_index())) +
+			std::to_string(report.get_error_line()) + ':' + std::to_string(report.get_error_index()))) +
 		" - " +
 			report.get_parse_error() +
 			(!report.get_parse_error_details().empty() ? std::string(" (") + report.get_parse_error_details().data() + ')' : std::string{}) +
-		std::string(" (code: ") + std::to_string(report.get_error_code()) + ").");
+		std::string(" (code: ") + std::to_string(report.get_error_code()) + ").";
 }
 
 const char* henifig::retrieval_exception::what() const noexcept {

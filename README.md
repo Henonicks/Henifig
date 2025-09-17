@@ -144,6 +144,15 @@ const auto& number_stdget = std::get <double>(cfg["number"]);
 // if you'd like to use it for some reason... it just calls value_t::get <T>().
 ```
 
+## Testing
+
+If you'd like to test if a henifig can be parsed before using it in your program, build the code in
+`henifig/test` and run it with an argument being the path to the file:
+
+    ./cfgtest path/to/config.hfg
+
+If left with no arguments, it will test against test.hfg alongside the `main.cpp`.
+
 ## Handling errors
 
 Whenever a parse attempt fails, a `henifig::parse_exception` is thrown. A termination report may look something like:

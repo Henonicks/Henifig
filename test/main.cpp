@@ -18,9 +18,13 @@
 
 #include "henifig/henifig.hpp"
 
-int main() {
+int main(const int argc, const char** argv) {
+	if (argc > 2) {
+		std::cerr << "Usage: cfgtest <path/to/config.hfg>\n";
+	}
+	const std::string path = argc == 2 ? argv[1] : "../test.hfg";
 	henifig::process_logger::set_enabled(true);
-	henifig::config_t cfg("../test.hfg");
+	henifig::config_t cfg(path);
 	const std::vector <std::function <bool()>> tests = {
 		[&cfg]() -> bool {
 			try {
@@ -134,13 +138,15 @@ int main() {
 			}
 		},
 	};
-	int failed{};
-	for (int i = 0; i < tests.size(); i++) {
-		std::cout << "Test № " << std::to_string(i + 1) << "  ";
-		const bool passed{tests[i]()};
-		failed += !passed;
-		std::cout << (passed ? "\nPASSED" : "FAILED") << '\n';
+	if (argc != 2) {
+		int failed{};
+		for (int i = 0; i < tests.size(); i++) {
+			std::cout << "Test № " << std::to_string(i + 1) << "  ";
+			const bool passed{tests[i]()};
+			failed += !passed;
+			std::cout << (passed ? "\nPASSED" : "FAILED") << '\n';
+		}
+		std::cout << '\n' << (!failed ? "ALL TESTS PASSED" : "TESTS FAILED") << '\n';
 	}
-	std::cout << '\n' << (!failed ? "ALL TESTS PASSED" : "TESTS FAILED") << '\n';
 	return 0;
 }
