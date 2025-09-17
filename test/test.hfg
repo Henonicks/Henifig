@@ -4,7 +4,10 @@
 /number\  | -1111.1
 /true\    | true
 /false\   | false
-/arr[{
+/arr[
+  "\"{username}\"? Sounds like something I'd name my children in Sims. Jeez."
+]\
+[#/arr[{
   $"1" | true,
   $"2",
   $"3" | [
@@ -14,4 +17,4 @@
 /map{
   $"I will" | ["rise"],
   $"1" | 2
-}\
+}\#]
