@@ -249,39 +249,41 @@ henifig::parse_report henifig::config_t::lex() {
 			if (line[i] == '\\') {
 				if (hanging_var) {
 					if (!hanging_escape) {
-						if ((i != line.size() - 1 && line[i + 1] == '|' || line[i + 1] == ' ') ||
-						(i != first_index && line[i - 1] == ']' || line[i - 1] == '}') ||
-						i == line.size() - 1) {
-							// If this backslash is to complete a declaration
-							hanging_var = 0;
-							if (!afterpipe) {
-								cout << "AFTERPIPE PUSHING: " << line_num << ' ' << i << " `" << value << "`\n";
-								vars.push_back(value);
-								if (line_num_exists()) {
-									break;
+						if (!hanging_quote && !hanging_apostrophe) {
+							if ((i != line.size() - 1 && line[i + 1] == '|' || line[i + 1] == ' ') ||
+							(i != first_index && line[i - 1] == ']' || line[i - 1] == '}') ||
+							i == line.size() - 1) {
+								// If this backslash is to complete a declaration
+								hanging_var = 0;
+								if (!afterpipe) {
+									cout << "AFTERPIPE PUSHING: " << line_num << ' ' << i << " `" << value << "`\n";
+									vars.push_back(value);
+									if (line_num_exists()) {
+										break;
+									}
+									var_declared = true;
 								}
-								var_declared = true;
+								else {
+									// This is a /var()\-like declaration
+									if (!hanging_arr.empty()) {
+										error_code = HANGING_ARR;
+										line_num = hanging_arr_line.top();
+										i = hanging_arr.top();
+										break;
+									}
+									if (!hanging_map.empty()) {
+										error_code = HANGING_MAP;
+										line_num = hanging_map_line.top();
+										i = hanging_map.top();
+										break;
+									}
+									values_str.push_back(value);
+								}
+								cout << "/VAR()\\, CLEARING " << line_num << ' ' << i << '\n';
+								value.clear();
+								value_str.clear();
+								is_double = false;
 							}
-							else {
-								// This is a /var()\-like declaration
-								if (!hanging_arr.empty()) {
-									error_code = HANGING_ARR;
-									line_num = hanging_arr_line.top();
-									i = hanging_arr.top();
-									break;
-								}
-								if (!hanging_map.empty()) {
-									error_code = HANGING_MAP;
-									line_num = hanging_map_line.top();
-									i = hanging_map.top();
-									break;
-								}
-								values_str.push_back(value);
-							}
-							cout << "/VAR()\\, CLEARING " << line_num << ' ' << i << '\n';
-							value.clear();
-							value_str.clear();
-							is_double = false;
 						}
 						else {
 							hanging_escape = i;
@@ -291,9 +293,6 @@ henifig::parse_report henifig::config_t::lex() {
 						cout << "ADDING BACKSLASH " << line_num << ' ' << i << '\n';
 						value += '\\';
 					}
-				}
-				else {
-					hanging_escape = i;
 				}
 				cout << "HIT BACKSLASH " << line_num << ' ' << i << ' ' << hanging_escape << '\n';
 			}
@@ -435,14 +434,10 @@ henifig::parse_report henifig::config_t::lex() {
 						break;
 					}
 				}
-				if (line[i] == '\"') {
+				if (line[i] == '"') {
 					if (!hanging_escape && !hanging_apostrophe) {
-						if (!hanging_quote) {
-							hanging_quote = i;
-						}
-						else {
-							hanging_quote = 0;
-						}
+						hanging_quote = !hanging_quote ? i : 0;
+						cout << line_num << ' ' << i << " HANGING QUOTE " << hanging_quote << "\n";
 					}
 					else if (hanging_escape) {
 						if (piped) {
@@ -747,6 +742,7 @@ henifig::parse_report henifig::config_t::lex() {
 				}
 			}
 			if (hanging_escape != i) {
+				cout << "HANGING ESCAPE " << line_num << ' ' << i << ' ' << hanging_escape << '\n';
 				hanging_escape = 0;
 			}
 		}
