@@ -87,14 +87,29 @@ namespace henifig {
 		operator const value_variant&() const;
 		template <typename T>
 		[[nodiscard]] T get() const {
-			if constexpr (std::is_convertible <T, double>() && !std::is_same <T, bool>() && !std::is_same <T, char>()) {
-				return std::get <double>(value);
-			}
-			else if constexpr (std::is_same <T, value_array>()) {
+			if constexpr (std::is_same <T, value_array>()) {
 				return std::get <array_t>(value);
 			}
 			else if constexpr (std::is_same <T, value_map>()) {
 				return std::get <map_t>(value);
+			}
+			else if constexpr (!std::is_same <T, bool>() && !std::is_same <T, char>()) {
+				if constexpr (std::is_convertible <double, T>()) {
+					return std::get <double>(value);
+				}
+				else {
+					if constexpr (std::is_convertible <int, T>()) {
+						if constexpr (std::is_signed <T>()) {
+							return static_cast <unsigned long>(std::get <double>(value));
+						}
+						else {
+							return static_cast <long>(std::get <double>(value));
+						}
+					}
+					else {
+						return std::get <T>(value);
+					}
+				}
 			}
 			else {
 				return std::get <T>(value);
