@@ -18,6 +18,8 @@
 
 #include "henifig/types.hpp"
 
+henifig::config_t::brace_t::brace_t(const size_t& num, const size_t& i) : num(num), i(i) {}
+
 henifig::parse_report::parse_report(const error_codes& error_code, const std::string_view error_filename) : error_code(error_code), error_filename(error_filename) {}
 
 henifig::parse_report::parse_report(const error_codes& error_code, const size_t& error_line, const size_t& error_index, const std::string_view error_filename, const std::string_view error_details) :
