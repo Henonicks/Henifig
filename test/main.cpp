@@ -16,6 +16,11 @@
 
 #include <functional>
 
+#define FMT_HEADER_ONLY
+
+#include <fmt/format.h>
+#include <fmt/args.h>
+
 #include "henifig/henifig.hpp"
 
 int main(const int argc, const char** argv) {
@@ -148,5 +153,11 @@ int main(const int argc, const char** argv) {
 		}
 		std::cout << '\n' << (!failed ? "ALL TESTS PASSED" : "TESTS FAILED") << '\n';
 	}
+	fmt::dynamic_format_arg_store <fmt::format_context> things;
+	things.push_back("t1");
+	things.push_back("t2");
+	things.push_back("t3");
+	std::string thing = fmt::vformat("Things:", {});
+	std::cout << thing << '\n';
 	return 0;
 }

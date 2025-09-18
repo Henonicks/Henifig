@@ -23,5 +23,3 @@ add_library(${PROJECT_NAME} ${henifig_src})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 set(CMAKE_CXX_STANDARD 17)
 target_include_directories(${PROJECT_NAME} PUBLIC "include")
-
-target_compile_definitions(${PROJECT_NAME} PUBLIC FMT_HEADER_ONLY)

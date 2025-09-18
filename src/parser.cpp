@@ -381,7 +381,7 @@ henifig::parse_report henifig::config_t::lex() {
 					bool expected_dollar{};
 					bool piped_key{};
 					bool piped_value{};
-					if (!hanging_escape && !hanging_var) {
+					if (!hanging_escape) {
 						quote_after_expr = !value.empty() && line[i] == '"' && *value.rbegin() != '"' && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '|' && (line[i - 1] != '$' || line[i - 1] == '$' && !is_map()) && !hanging_quote;
 						num_after_expr =   isdigit(line[i]) && !isdigit(*value.rbegin()) && *value.rbegin() != ',' && *value.rbegin() != '[' && *value.rbegin() != '{' && *value.rbegin() != '-' && *value.rbegin() != '.' && *value.rbegin() != '|';
 						expr_after_num =  !isdigit(line[i]) &&  isdigit(*value.rbegin()) && line[i] != ',' && line[i] != '-' && line[i] != '.' && line[i] != ']' && line[i] != '}';
@@ -686,6 +686,7 @@ henifig::parse_report henifig::config_t::lex() {
 					}
 				}
 				else if (line[i] == '$') {
+					std::cout << "DOLLAR HIT " << line_num << ' ' << i << ' ' << is_map() << ' ' << hanging_map.top().num << ' ' << hanging_var << '\n';
 					if (hanging_quote || hanging_apostrophe) {
 						value += '$';
 						if (hanging_apostrophe) {
