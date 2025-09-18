@@ -129,6 +129,8 @@ namespace henifig {
 		[[nodiscard]] bool is() const {
 			return std::holds_alternative <T>(value);
 		}
+		value_t operator [](const std::size_t& index) const;
+		value_t operator [](std::string_view index) const;
 	};
 	struct depth_t {
 		size_t arr_index{NPOS}, map_index{NPOS};
