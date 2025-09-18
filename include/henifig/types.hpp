@@ -186,6 +186,7 @@ namespace henifig {
 		explicit config_t(std::string_view filename);
 		void operator <<(std::string_view new_content);
 		void operator <<(const std::ifstream& cfg_file);
+		void open(std::string_view new_filename);
 		error_codes print_value(const value_t& x);
 		const value_t& operator [](std::string_view key);
 		const value_array& get_arr(const size_t& index) const;
