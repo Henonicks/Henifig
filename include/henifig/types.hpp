@@ -155,6 +155,10 @@ namespace henifig {
 		[[nodiscard]] std::string_view get_parse_error_details() const noexcept;
 	};
 	class config_t {
+		struct brace_t {
+			size_t num{}, i{};
+			brace_t(const size_t& num, const size_t& i);
+		};
 		const config_t* cfg_self = this;
 		std::string filename;
 		std::vector <std::string> vars;

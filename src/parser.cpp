@@ -190,7 +190,8 @@ henifig::parse_report henifig::config_t::remove_comments() {
 henifig::parse_report henifig::config_t::lex() {
 	std::string line;
 	size_t hanging_var{}, hanging_quote{}, hanging_apostrophe{}, hanging_escape{};
-	std::stack <size_t> hanging_arr, hanging_map;
+	size_t braces{};
+	std::stack <brace_t> hanging_arr, hanging_map;
 	std::stack <size_t> hanging_arr_line{}, hanging_map_line{};
 	bool is_double{};
 	size_t hanging_comma_line{};
@@ -219,10 +220,18 @@ henifig::parse_report henifig::config_t::lex() {
 		return false;
 	};
 	auto is_arr = [&hanging_arr, &hanging_map]() -> bool {
-		return !hanging_arr.empty() && (hanging_map.empty() || hanging_arr.top() > hanging_map.top());
+		return !hanging_arr.empty() && (hanging_map.empty() || hanging_arr.top().num > hanging_map.top().num);
 	};
 	auto is_map = [&hanging_arr, &hanging_map]() -> bool {
-		return !hanging_map.empty() && (hanging_arr.empty() || hanging_map.top() > hanging_arr.top());
+		return !hanging_map.empty() && (hanging_arr.empty() || hanging_map.top().num > hanging_arr.top().num);
+	};
+	auto brace_append = [&braces, &i](std::stack <brace_t>& hanging_cont) {
+		hanging_cont.emplace(braces, i);
+		++braces;
+	};
+	auto brace_remove = [&braces](std::stack <brace_t>& hanging_cont) {
+		hanging_cont.pop();
+		--braces;
 	};
 	auto line_num_exists = [&value, &line_num, this, &error_code, &i]() -> bool {
 		size_t& num = line_nums[value];
@@ -268,13 +277,13 @@ henifig::parse_report henifig::config_t::lex() {
 									if (!hanging_arr.empty()) {
 										error_code = HANGING_ARR;
 										line_num = hanging_arr_line.top();
-										i = hanging_arr.top();
+										i = hanging_arr.top().i;
 										break;
 									}
 									if (!hanging_map.empty()) {
 										error_code = HANGING_MAP;
 										line_num = hanging_map_line.top();
-										i = hanging_map.top();
+										i = hanging_map.top().i;
 										break;
 									}
 									values_str.push_back(value);
@@ -384,7 +393,7 @@ henifig::parse_report henifig::config_t::lex() {
 						middle_minus = line[i] == '-' && line[i - 1] == '-';
 						hanging_dot = line[i] == '.' && !isdigit(line[i + 1]);
 						hanging_dollar = line[i] == '$' && line[i + 1] != '"';
-						unexpected_dollar = line[i] == '$' && (hanging_map.empty() || (!hanging_arr.empty() && hanging_map.top() < hanging_arr.top()));
+						unexpected_dollar = line[i] == '$' && !is_map();
 						repeated_dollar = line[i] == '$' && line[i - 1] == '$';
 						expected_dollar = line[i] != '$' && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|') && is_map();
 						piped_key = line[i] == '$' && (!value.empty() && *value.rbegin() != '$' && *value.rbegin() != '{' && *value.rbegin() != ',');
@@ -510,7 +519,7 @@ henifig::parse_report henifig::config_t::lex() {
 							}
 						}
 						else if (!hanging_escape) {
-							hanging_arr.push(i);
+							brace_append(hanging_arr);
 							hanging_arr_line.push(line_num);
 						}
 						else {
@@ -531,7 +540,7 @@ henifig::parse_report henifig::config_t::lex() {
 								error_code = UNEXPECTED_ARR_END;
 								break;
 							}
-							if (!hanging_map.empty() && hanging_map.top() > hanging_arr.top()) {
+							if (!hanging_map.empty() && hanging_map.top().num > hanging_arr.top().num) {
 								error_code = MAP_COMPLETED_WITH_ARR;
 								break;
 							}
@@ -539,7 +548,7 @@ henifig::parse_report henifig::config_t::lex() {
 								error_code = HANGING_COMMA;
 								break;
 							}
-							hanging_arr.pop();
+							brace_remove(hanging_arr);
 							hanging_arr_line.pop();
 						}
 						value += ']';
@@ -551,7 +560,7 @@ henifig::parse_report henifig::config_t::lex() {
 							}
 						}
 						else if (!hanging_escape) {
-							hanging_map.push(i);
+							brace_append(hanging_map);
 							hanging_map_line.push(line_num);
 						}
 						else {
@@ -572,7 +581,7 @@ henifig::parse_report henifig::config_t::lex() {
 								error_code = UNEXPECTED_MAP_END;
 								break;
 							}
-							if (!hanging_arr.empty() && hanging_arr.top() > hanging_map.top()) {
+							if (!hanging_arr.empty() && hanging_arr.top().num > hanging_map.top().num) {
 								error_code = MAP_COMPLETED_WITH_ARR;
 								break;
 							}
@@ -580,7 +589,7 @@ henifig::parse_report henifig::config_t::lex() {
 								error_code = HANGING_COMMA;
 								break;
 							}
-							hanging_map.pop();
+							brace_remove(hanging_map);
 							hanging_map_line.pop();
 						}
 						value += '}';
