@@ -38,11 +38,17 @@ namespace henifig {
 		declaration,	// undefined, can be used to check if a variable exist in case we don't need it to have a value
 		string,			// "string"
 		character,		// 'char'
-		number,			// double
+		floating,		// double
+		ulonglong,		// unsigned long long
+		longlong,		// long long
 		boolean,		// bool
 		array,			// [array]
 		map,			// {map}
 	};
+
+	/**
+	 * @brief The type of the value at the <current index>
+	 */
 	enum index_types : uint8_t {
 		VAR,			// variable
 		ARR,			// array
@@ -60,7 +66,7 @@ namespace henifig {
 	class value_t;
 
 	using value_variant = std::variant
-	<unset_t, declaration_t, std::string, char, double, bool, array_t, map_t>;
+	<unset_t, declaration_t, std::string, char, double, unsigned long long, long long, bool, array_t, map_t>;
 
 	using value_array = std::vector <value_t>;
 	using value_map = std::map <std::string, value_t>;
@@ -87,28 +93,23 @@ namespace henifig {
 		operator const value_variant&() const;
 		template <typename T>
 		[[nodiscard]] T get() const {
-			if constexpr (std::is_same <T, value_array>()) {
+			if constexpr (std::is_same <T, value_array>() || std::is_same <T, array_t>()) {
 				return std::get <array_t>(value);
 			}
-			else if constexpr (std::is_same <T, value_map>()) {
+			else if constexpr (std::is_same <T, value_map>() || std::is_same <T, map_t>()) {
 				return std::get <map_t>(value);
 			}
-			else if constexpr (!std::is_same <T, bool>() && !std::is_same <T, char>()) {
-				if constexpr (std::is_convertible <double, T>()) {
+			else if constexpr (!std::is_same <T, bool>() &&
+			!std::is_same <T, char>() && !std::is_same <T, unsigned char>() &&
+			std::is_convertible <T, int>()) {
+				if constexpr (std::is_floating_point <T>()) {
 					return std::get <double>(value);
 				}
+				else if (value.index() == ulonglong) {
+					return std::get <unsigned long long>(value);
+				}
 				else {
-					if constexpr (std::is_convertible <int, T>()) {
-						if constexpr (std::is_signed <T>()) {
-							return static_cast <unsigned long>(std::get <double>(value));
-						}
-						else {
-							return static_cast <long>(std::get <double>(value));
-						}
-					}
-					else {
-						return std::get <T>(value);
-					}
+					return std::get <long long>(value);
 				}
 			}
 			else {

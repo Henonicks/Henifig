@@ -476,7 +476,6 @@ henifig::parse_report henifig::config_t::lex() {
 				}
 				else if (line[i] == '\'') {
 					if (!hanging_escape && !hanging_quote) {
-						std::cout << "QUOTE HIT " << line_num << ' ' << i << '\n';
 						if (!hanging_apostrophe) {
 							hanging_apostrophe = i;
 						}
@@ -822,8 +821,16 @@ henifig::error_codes henifig::config_t::print_value(const value_t& x) {
 			cout << "character(" << x.get <char>() << ")\n";
 			break;
 		}
-		case number: {
-			cout << "number(" << x.get <double>() << ")\n";
+		case floating: {
+			cout << "double(" << x.get <double>() << ")\n";
+			break;
+		}
+		case ulonglong: {
+			cout << "unsigned(" << x.get <unsigned long long>() << ")\n";
+			break;
+		}
+		case longlong: {
+			cout << "signed(" << x.get <long long>() << ")\n";
 			break;
 		}
 		case boolean: {
@@ -985,6 +992,7 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 		}
 		return pos;
 	}
+	bool is_signed{};
 	size_t i = pos;
 	switch (line[i]) {
 		case '"': {
@@ -1049,17 +1057,32 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 			appender(depth, value);
 			return parse_value(var_num, i + 4, depth);
 		}
-		case '0' ... '9': case '-': {
+		case '-' : {
+			is_signed = true;
+		}
+		case '0' ... '9': {
+			bool is_float{};
 			std::string value;
 			for (;i < line.size(); i++) {
 				if (isdigit(line[i]) || line[i] == '.' || line[i] == '-') {
+					if (line[i] == '.') {
+						is_float = true;
+					}
 					value += line[i];
 				}
 				else {
 					break;
 				}
 			}
-			appender(depth, std::stod(value));
+			if (is_float) {
+				appender(depth, std::stod(value));
+			}
+			else if (!is_signed) {
+				appender(depth, std::stoull(value));
+			}
+			else {
+				appender(depth, std::stoll(value));
+			}
 			return parse_value(var_num, i, depth);
 		}
 		case 't': {

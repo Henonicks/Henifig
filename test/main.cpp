@@ -133,7 +133,7 @@ int main(const int argc, const char** argv) {
 				return true;
 			}
 			catch (const std::exception& e) {
-				std::cout << '\n' << e.what() << '\n';
+				std::cout << e.what() << '\n';
 				return false;
 			}
 		},
