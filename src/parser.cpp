@@ -262,6 +262,9 @@ henifig::parse_report henifig::config_t::lex() {
 				}
 			}
 			if (line[i] == '\\') {
+				if (!hanging_var && !hanging_quote && !hanging_apostrophe) {
+					error_code = UNEXPECTED_ESCAPE;
+				}
 				if (hanging_var) {
 					if (!hanging_escape) {
 						if (!hanging_quote && !hanging_apostrophe) {
@@ -300,14 +303,21 @@ henifig::parse_report henifig::config_t::lex() {
 								is_double = false;
 							}
 						}
-						else {
-							hanging_escape = i;
-						}
 					}
-					else {
-						cout << "ADDING BACKSLASH " << line_num << ' ' << i << '\n';
+				}
+				if (hanging_escape) {
+					cout << "ADDING BACKSLASH " << line_num << ' ' << i << '\n';
+					value += '\\';
+					if (!(hanging_var && !afterpipe)) {
 						value += '\\';
 					}
+					if (hanging_apostrophe) {
+						value_str += '\\';
+					}
+					hanging_escape = 0;
+				}
+				else if ((hanging_var && !afterpipe) || (hanging_quote || hanging_apostrophe)) {
+					hanging_escape = i;
 				}
 				cout << "HIT BACKSLASH " << line_num << ' ' << i << ' ' << hanging_escape << '\n';
 			}
@@ -466,6 +476,7 @@ henifig::parse_report henifig::config_t::lex() {
 				}
 				else if (line[i] == '\'') {
 					if (!hanging_escape && !hanging_quote) {
+						std::cout << "QUOTE HIT " << line_num << ' ' << i << '\n';
 						if (!hanging_apostrophe) {
 							hanging_apostrophe = i;
 						}
@@ -692,7 +703,6 @@ henifig::parse_report henifig::config_t::lex() {
 					}
 				}
 				else if (line[i] == '$') {
-					std::cout << "DOLLAR HIT " << line_num << ' ' << i << ' ' << is_map() << ' ' << hanging_map.top().num << ' ' << hanging_var << '\n';
 					if (hanging_quote || hanging_apostrophe) {
 						value += '$';
 						if (hanging_apostrophe) {
@@ -1012,6 +1022,9 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 							hanging_escape = 0;
 							if (line[i] == 'n') {
 								value += '\n';
+							}
+							else {
+								value += line[i];
 							}
 						}
 						else {
