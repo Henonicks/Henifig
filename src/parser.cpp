@@ -323,30 +323,31 @@ henifig::parse_report henifig::config_t::lex() {
 			}
 			else if (line[i] == '/') {
 				if (!hanging_quote && !hanging_apostrophe) {
-					if (!var_declared && hanging_var) {
-						value += '/';
-					}
-					else if (afterpipe && i != first_index) {
+					if (afterpipe && i != first_index) {
 						error_code = MISSING_SEMICOLON;
 						break;
 					}
-					else if (!afterpipe && piped) {
+					if (!afterpipe && piped) {
 						error_code = HANGING_PIPE;
 						break;
 					}
-					else {
-						if (vars.size() > values_str.size()) {
-							values_str.push_back(value);
-						}
-						cout << "NEW DECL, CLEARING " << line_num << ' ' << i << '\n';
-						cout << hanging_arr.empty() << '\n';
-						value.clear();
-						value_str.clear();
-						hanging_var = i;
-						var_declared = false;
-						piped = false;
-						afterpipe = false;
-						is_double = false;
+					if (vars.size() > values_str.size()) {
+						values_str.push_back(value);
+					}
+					cout << "NEW DECL, CLEARING " << line_num << ' ' << i << '\n';
+					cout << hanging_arr.empty() << '\n';
+					value.clear();
+					value_str.clear();
+					hanging_var = i;
+					var_declared = false;
+					piped = false;
+					afterpipe = false;
+					is_double = false;
+				}
+				else {
+					value += '/';
+					if (hanging_apostrophe) {
+						value_str += '/';
 					}
 				}
 			}
@@ -411,7 +412,7 @@ henifig::parse_report henifig::config_t::lex() {
 						hanging_dollar = line[i] == '$' && line[i + 1] != '"';
 						unexpected_dollar = line[i] == '$' && !is_map();
 						repeated_dollar = line[i] == '$' && line[i - 1] == '$';
-						expected_dollar = line[i] != '$' && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|') && is_map();
+						expected_dollar = (line[i] != '$' && line[i] != '"') && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|') && is_map();
 						piped_key = line[i] == '$' && (!value.empty() && *value.rbegin() != '$' && *value.rbegin() != '{' && *value.rbegin() != ',');
 					}
 					// I didn't say I had a lot of tests
@@ -448,7 +449,7 @@ henifig::parse_report henifig::config_t::lex() {
 							error_code = REPEATED_DOLLAR;
 						}
 						else if (expected_dollar) {
-							 error_code = EXPECTED_DOLLAR;
+							error_code = EXPECTED_DOLLAR;
 						}
 						else if (piped_key) {
 							error_code = PIPED_KEY;
