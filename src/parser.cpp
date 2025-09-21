@@ -189,7 +189,7 @@ henifig::parse_report henifig::config_t::remove_comments() {
 		line_num = hanging_comment_line;
 		i = hanging_comment;
 	}
-	cout << "---\n" << parsed_content.str() << "---\n\n";
+	cout << "---\n" << parsed_content.str() << "---\n";
 	return {error_code, line_num, i, filename};
 }
 
@@ -220,7 +220,6 @@ henifig::parse_report henifig::config_t::lex() {
 		line[i - 1] != '.' && (line[i - 1] != '-' || (line[i - 1] == '-' && value.size() > 1))) ||
 		(line[i] < '0' && line[i] > '9') // for some fucking reason replacing this with !isdigit(line[i]) breaks it
 		) {
-			cout << "UNEXPECTED EXPRESSION " << line_num << ' ' << i << '\n';
 			return true;
 		}
 		return false;
@@ -251,7 +250,6 @@ henifig::parse_report henifig::config_t::lex() {
 		return false;
 	};
 	while (std::getline(parsed_content, line)) {
-		cout << "VALUE STR " << line_num << " `" << value_str << "`\n";
 		++line_num;
 		const size_t first_index = line.find_first_not_of(' ');
 		for (i = first_index; i < line.size(); i++) {
@@ -274,7 +272,6 @@ henifig::parse_report henifig::config_t::lex() {
 								// If this backslash is to complete a declaration
 								hanging_var = 0;
 								if (!afterpipe) {
-									cout << "AFTERPIPE PUSHING: " << line_num << ' ' << i << " `" << value << "`\n";
 									vars.push_back(value);
 									if (line_num_exists()) {
 										break;
@@ -297,7 +294,6 @@ henifig::parse_report henifig::config_t::lex() {
 									}
 									values_str.push_back(value);
 								}
-								cout << "/VAR()\\, CLEARING " << line_num << ' ' << i << '\n';
 								value.clear();
 								value_str.clear();
 								is_double = false;
@@ -306,7 +302,6 @@ henifig::parse_report henifig::config_t::lex() {
 					}
 				}
 				if (hanging_escape) {
-					cout << "ADDING BACKSLASH " << line_num << ' ' << i << '\n';
 					value += '\\';
 					if (!(hanging_var && !afterpipe)) {
 						value += '\\';
@@ -319,7 +314,6 @@ henifig::parse_report henifig::config_t::lex() {
 				else if ((hanging_var && !afterpipe) || (hanging_quote || hanging_apostrophe)) {
 					hanging_escape = i;
 				}
-				cout << "HIT BACKSLASH " << line_num << ' ' << i << ' ' << hanging_escape << '\n';
 			}
 			else if (line[i] == '/') {
 				if (!hanging_quote && !hanging_apostrophe) {
@@ -334,8 +328,6 @@ henifig::parse_report henifig::config_t::lex() {
 					if (vars.size() > values_str.size()) {
 						values_str.push_back(value);
 					}
-					cout << "NEW DECL, CLEARING " << line_num << ' ' << i << '\n';
-					cout << hanging_arr.empty() << '\n';
 					value.clear();
 					value_str.clear();
 					hanging_var = i;
@@ -356,7 +348,6 @@ henifig::parse_report henifig::config_t::lex() {
 					value += '|';
 					++map_pipes_amount;
 					if (map_keys_amount != map_pipes_amount) {
-						cout << "OOPSIE, MAP KEYS AND PIPES DIFFERENCE " << line_num << ' ' << i << ' ' << map_keys_amount << ' ' << map_pipes_amount << '\n';
 						error_code = PIPED_VALUE;
 						break;
 					}
@@ -364,7 +355,6 @@ henifig::parse_report henifig::config_t::lex() {
 				else if (!afterpipe && !hanging_var) {
 					if (!piped) {
 						piped = true;
-						cout << "PIPE HIT, CLEARING " << line_num << ' ' << i << '\n';
 						value.clear();
 						value_str.clear();
 						is_double = false;
@@ -423,7 +413,6 @@ henifig::parse_report henifig::config_t::lex() {
 					) || comma_around_pipe) ||
 					middle_minus || escaped_num || hanging_dot ||
 					hanging_dollar || unexpected_dollar || repeated_dollar || expected_dollar || piped_key || piped_value)) {
-						cout << "BIG-ASS CHECK " << line_num << ' ' << i << '\n';
 						if (quote_after_expr || num_after_expr || expr_after_num || expr_after_expr) {
 							error_code = UNEXPECTED_EXPRESSION;
 						}
@@ -463,7 +452,6 @@ henifig::parse_report henifig::config_t::lex() {
 				if (line[i] == '"') {
 					if (!hanging_escape && !hanging_apostrophe) {
 						hanging_quote = !hanging_quote ? i : 0;
-						cout << line_num << ' ' << i << " HANGING QUOTE " << hanging_quote << "\n";
 					}
 					else if (hanging_escape) {
 						if (piped) {
@@ -517,7 +505,6 @@ henifig::parse_report henifig::config_t::lex() {
 							break;
 						}
 						if (!piped && !hanging_escape && !hanging_quote && !hanging_apostrophe && hanging_arr.empty() && hanging_map.empty()) {
-							cout << "ARRAY AFTERPIPE, PUSHING, CLEARING " << line_num << ' ' << i << " `" << value << "`\n";
 							var_declared = true;
 							piped = true;
 							vars.push_back(value);
@@ -687,10 +674,7 @@ henifig::parse_report henifig::config_t::lex() {
 					value += '.';
 				}
 				else if (line[i] == ' ') {
-					cout << "SPACE HIT " << line_num << ' ' << i << '\n';
-					cout << hanging_var << ' ' << var_declared << ' ' << hanging_quote << ' ' << hanging_apostrophe << '\n';
 					if (hanging_escape) {
-						cout << "HANGING ESCAPE SEQUENCE\n";
 						error_code = HANGING_ESCAPE;
 						break;
 					}
@@ -699,7 +683,6 @@ henifig::parse_report henifig::config_t::lex() {
 						if (hanging_apostrophe) {
 							value_str += ' ';
 						}
-						cout << "ADDING SPACE " << line_num << ' ' << i << '\n';
 					}
 				}
 				else if (line[i] == '$') {
@@ -721,12 +704,10 @@ henifig::parse_report henifig::config_t::lex() {
 				}
 			}
 			else if (line[i] != ';' && (!hanging_var || (!hanging_arr.empty() || !hanging_map.empty())) && !hanging_quote && !hanging_apostrophe) {
-				cout << "UNKNOWN EXPRESSION\n";
 				error_code = UNKNOWN_EXPRESSION;
 				break;
 			}
 			else if (line[i] != ';') {
-				cout << "ELSE: " << line_num << ' ' << i << " `" << line[i] << "`\n";
 				char to_add;
 				if (hanging_escape) {
 					if (line[i] == 'n') {
@@ -744,7 +725,6 @@ henifig::parse_report henifig::config_t::lex() {
 				else {
 					to_add = line[i];
 				}
-				cout << "ADDING `" << to_add << "`\n";
 				value += to_add;
 				if (hanging_apostrophe) {
 					value_str += to_add;
@@ -768,7 +748,6 @@ henifig::parse_report henifig::config_t::lex() {
 				}
 			}
 			if (hanging_escape != i) {
-				cout << "HANGING ESCAPE " << line_num << ' ' << i << ' ' << hanging_escape << '\n';
 				hanging_escape = 0;
 			}
 		}
@@ -800,7 +779,7 @@ henifig::parse_report henifig::config_t::lex() {
 	for (size_t i = 0; i < vars.size(); i++) {
 		cout << '`' << vars[i] << "` | `" << (values_str.size() > i ? values_str[i] : "") << "`\n";
 	}
-	cout << "----\n";
+	cout << "----\n\n";
 	if (error_code == OK && (piped && !afterpipe)) {
 		error_code = HANGING_PIPE;
 		i -= 2;
@@ -911,8 +890,6 @@ henifig::parse_report henifig::config_t::parse() {
 #define append_to_map(original_value, new_value) \
 	value_t& map_value_ref = original_value; \
 	if (map_value_ref.index() != unset) { \
-		print_value(original_value); \
-		print_value(new_value); \
 		return REDECLARED_KEY; \
 	} \
 	map_value_ref = new_value
@@ -958,15 +935,11 @@ henifig::error_codes henifig::config_t::append(depth_t& depth, const value_t& va
 			break;
 		}
 		case MAP_KEY: {
-			cout << "MAP_KEY " << depth.map_index << ' ';
-			print_value(value);
 			append_to_map(maps[map_indexes.top()][value.get <std::string>()], declaration_t{});
 			map_keys[depth.map_index] = value.get <std::string>();
 			break;
 		}
 		case MAP_VALUE: {
-			cout << "MAP_VALUE " << depth.map_index << ' ' << map_keys[depth.map_index] << ' ';
-			print_value(value);
 			maps[map_indexes.top()][map_keys[depth.map_index]] = value;
 			break;
 		}
