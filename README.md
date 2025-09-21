@@ -3,7 +3,7 @@
 ## Introduction
 
 The name (pronounced as "H*e*n-if-ig") comes from my nickname, Henonicks
-(pronounced as "Hen-*o*h-nicks"), combined with "config".
+(pronounced as "Hen-*o*n-icks"), combined with "config".
 
 ## Usage
 
