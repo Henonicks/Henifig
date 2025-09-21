@@ -195,10 +195,11 @@ namespace henifig {
 		parse_report parse();
 		size_t parse_value(const size_t& var_num, const size_t& pos = 0, depth_t depth = {});
 		error_codes append(depth_t& depth, const value_t& value = declaration_t{});
-		size_t spaces{};
-		void print_spaces() const;
+		size_t space_offsets{};
+		std::string get_spaces(const size_t& offset = 2) const;
 		error_codes print_array(const value_array& x);
 		error_codes print_map(const value_map& x);
+		std::string value_to_json(const value_t& value, const size_t& spaces);
 	public:
 		config_t() = default;
 		explicit config_t(std::string_view filename);
@@ -209,5 +210,6 @@ namespace henifig {
 		const value_t& operator [](std::string_view key);
 		const value_array& get_arr(const size_t& index) const;
 		const value_map& get_map(const size_t& index) const;
+		std::string to_json(const size_t& spaces = 4);
 	};
 }

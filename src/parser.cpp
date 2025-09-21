@@ -833,10 +833,12 @@ henifig::error_codes henifig::config_t::print_value(const value_t& x) {
 	return OK;
 }
 
-void henifig::config_t::print_spaces() const {
-	for (int i = 0; i < spaces; i++) {
-		cout << ' ';
+std::string henifig::config_t::get_spaces(const size_t& offset) const {
+	std::string spaces;
+	for (int i = 0; i < space_offsets * offset; i++) {
+		spaces += ' ';
 	}
+	return spaces;
 }
 
 henifig::error_codes henifig::config_t::print_array(const value_array& x) {
@@ -847,12 +849,12 @@ henifig::error_codes henifig::config_t::print_array(const value_array& x) {
 		return error_code;
 	}
 	cout << '\n';
-	spaces += 2;
+	++space_offsets;
 	for (const value_t& y : x) {
-		print_spaces(); error_code = print_value(y);
+		cout << get_spaces(); error_code = print_value(y);
 	}
-	spaces -= 2;
-	print_spaces(); cout << "]\n";
+	--space_offsets;
+	cout << get_spaces() << "]\n";
 	return error_code;
 }
 
@@ -864,14 +866,13 @@ henifig::error_codes henifig::config_t::print_map(const value_map& x) {
 		return error_code;
 	}
 	cout << '\n';
-	spaces += 2;
+	space_offsets += 2;
 	for (const auto& y : x) {
-		print_spaces();
-		cout << "key(" << y.first << ") | ";
+		cout << get_spaces() << "key(" << y.first << ") | ";
 		error_code = print_value(y.second);
 	}
-	spaces -= 2;
-	print_spaces(); cout << "}\n";
+	space_offsets -= 2;
+	cout << get_spaces() << "}\n";
 	return error_code;
 }
 

@@ -17,6 +17,7 @@
 #include <functional>
 
 #include "henifig/henifig.hpp"
+#include "henifig/json.hpp"
 
 int main(const int argc, const char** argv) {
 	if (argc > 2) {
@@ -147,6 +148,16 @@ int main(const int argc, const char** argv) {
 			std::cout << (passed ? "\nPASSED" : "FAILED") << '\n';
 		}
 		std::cout << '\n' << (!failed ? "ALL TESTS PASSED" : "TESTS FAILED") << '\n';
+		const std::string json = cfg.to_json();
+		std::ifstream json_file("../test.json");
+		std::stringstream json_file_content;
+		json_file_content << json_file.rdbuf();
+		if (json != json_file_content.str()) {
+			std::cout << cfg.to_json() << '\n' << "ERROR: JSON CONVERSION DIFFERENT FROM EXPECTED\n";
+		}
+		else {
+			std::cout << "JSON CHECK PASSED\n";
+		}
 	}
 	return 0;
 }
