@@ -924,7 +924,7 @@ henifig::error_codes henifig::config_t::append(depth_t& depth, const value_t& va
 				arrs[arr_indexes.top()].emplace_back(map_t{maps.size(), this});
 			}
 			else {
-				maps[map_indexes.top()][map_keys[depth.map_index]] = map_t{maps.size(), this};
+				maps[map_indexes.top()][map_keys[depth.map_index - 1]] = map_t{maps.size(), this};
 			}
 			map_indexes.push(maps.size());
 			maps.emplace_back();
