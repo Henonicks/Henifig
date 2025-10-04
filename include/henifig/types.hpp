@@ -99,6 +99,9 @@ namespace henifig {
 			else if constexpr (std::is_same <T, value_map>() || std::is_same <T, map_t>()) {
 				return std::get <map_t>(value);
 			}
+			else if constexpr (std::is_same <T, std::string_view>()) {
+				return std::get <std::string>(value);
+			}
 			else if constexpr (!std::is_same <T, bool>() &&
 			!std::is_same <T, char>() && !std::is_same <T, unsigned char>() &&
 			std::is_convertible <T, int>()) {
