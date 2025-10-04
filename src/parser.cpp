@@ -64,7 +64,7 @@ henifig::parse_report henifig::config_t::process_parsing() {
 henifig::parse_report henifig::config_t::remove_comments() {
 	error_codes error_code{};
 	std::string line;
-	size_t hanging_var{}, hanging_comment{}, hanging_escape{}, hanging_quote{}, hanging_apostrophe{};
+	size_t hanging_var{}, hanging_comment{}, hanging_escape{}, hanging_quote{}, hanging_apostrophe{}, hanging_arrs{}, hanging_maps{};
 	size_t hanging_comment_line{}, hanging_quote_line{}, hanging_apostrophe_line{};
 
 	std::string buffer;
@@ -93,7 +93,7 @@ henifig::parse_report henifig::config_t::remove_comments() {
 					hanging_var = 0;
 				}
 			}
-			if (line[i] == '#' && !hanging_var && !hanging_quote && !hanging_apostrophe) {
+			if (line[i] == '#' && (!hanging_var || hanging_arrs || hanging_maps) && !hanging_quote && !hanging_apostrophe) {
 				bool ml_comment_begin{};
 				// Is this the beginning of a multi-line comment?
 
@@ -134,6 +134,20 @@ henifig::parse_report henifig::config_t::remove_comments() {
 				else if (!hanging_quote && line[i] == '\'' && !hanging_escape) {
 					hanging_apostrophe = !hanging_apostrophe ? i : 0;
 					hanging_apostrophe_line = hanging_apostrophe ? line_num : 0;
+				}
+				else if (!hanging_quote && !hanging_apostrophe) {
+					if (line[i] == '[') {
+						++hanging_arrs;
+					}
+					else if (line[i] == '{') {
+						++hanging_maps;
+					}
+					else if (line[i] == ']') {
+						--hanging_arrs;
+					}
+					else if (line[i] == '}') {
+						--hanging_maps;
+					}
 				}
 			}
 			else {
@@ -581,6 +595,12 @@ henifig::parse_report henifig::config_t::lex() {
 							}
 						}
 						else if (!hanging_escape) {
+							if (map_pipes_amount > 1) {
+								error_code = HANGING_PIPE;
+								break;
+							}
+							--map_pipes_amount;
+							--map_keys_amount;
 							if (hanging_map.empty()) {
 								error_code = UNEXPECTED_MAP_END;
 								break;
