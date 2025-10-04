@@ -595,7 +595,7 @@ henifig::parse_report henifig::config_t::lex() {
 							}
 						}
 						else if (!hanging_escape) {
-							if (map_pipes_amount > 1) {
+							if (map_pipes_amount > hanging_map.size()) {
 								error_code = HANGING_PIPE;
 								break;
 							}
