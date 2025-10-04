@@ -1132,7 +1132,7 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 #undef appender
 #undef container_appender
 
-const henifig::value_t& henifig::config_t::operator [](const std::string_view key) {
+const henifig::value_t& henifig::config_t::operator [](const std::string_view key) const {
 	try {
 		return values[var_nums.at(key.data())];
 	}

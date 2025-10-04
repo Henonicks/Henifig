@@ -207,9 +207,10 @@ namespace henifig {
 		void operator <<(const std::ifstream& cfg_file);
 		void open(std::string_view new_filename);
 		error_codes print_value(const value_t& x);
-		const value_t& operator [](std::string_view key);
+		const value_t& operator [](std::string_view key) const;
 		const value_array& get_arr(const size_t& index) const;
 		const value_map& get_map(const size_t& index) const;
 		std::string to_json(const size_t& spaces = 4);
+		operator value_map() const;
 	};
 }
