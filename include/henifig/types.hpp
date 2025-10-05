@@ -116,6 +116,7 @@ namespace henifig {
 				}
 			}
 			else {
+				static_assert(std::is_convertible <T, value_variant>(), "Can't cast T to the types in value_t.");
 				return std::get <T>(value);
 			}
 		}
