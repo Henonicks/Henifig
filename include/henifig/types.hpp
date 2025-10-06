@@ -99,9 +99,6 @@ namespace henifig {
 			else if constexpr (std::is_same <T, value_map>() || std::is_same <T, map_t>()) {
 				return std::get <map_t>(value);
 			}
-			else if constexpr (std::is_convertible <std::string, T>()) {
-				return std::get <std::string>(value);
-			}
 			else if constexpr (!std::is_same <T, bool>() &&
 			!std::is_same <T, char>() && !std::is_same <T, unsigned char>() &&
 			std::is_convertible <T, int>()) {
@@ -114,6 +111,9 @@ namespace henifig {
 				else {
 					return std::get <long long>(value);
 				}
+			}
+			else if constexpr (std::is_convertible <std::string, T>()) {
+				return std::get <std::string>(value);
 			}
 			else {
 				static_assert(std::is_convertible <T, value_variant>(), "Can't cast T to the types in value_t.");
