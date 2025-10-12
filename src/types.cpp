@@ -91,10 +91,6 @@ henifig::value_t henifig::value_t::operator[](const std::size_t& index) const {
 	return get <value_array>()[index];
 }
 
-henifig::value_t henifig::value_t::operator[](const std::string_view index) const {
-	return get <value_map>()[index.data()];
-}
-
 henifig::config_t::operator value_map() const {
 	value_map res;
 	for (const std::string& x : vars) {
