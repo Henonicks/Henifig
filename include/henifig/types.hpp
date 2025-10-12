@@ -150,7 +150,10 @@ namespace henifig {
 			return std::holds_alternative <T>(value);
 		}
 		value_t operator [](const std::size_t& index) const;
-		value_t operator [](std::string_view index) const;
+		template <typename T>
+		value_t operator [](const T& index) const {
+			return get <value_map>()[static_cast <std::string>(index)];
+		}
 	};
 	struct depth_t {
 		size_t arr_index{NPOS}, map_index{NPOS};
