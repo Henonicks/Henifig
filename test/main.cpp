@@ -22,6 +22,7 @@
 int main(const int argc, const char** argv) {
 	if (argc > 2) {
 		std::cerr << "Usage: cfgtest <path/to/config.hfg>\n";
+		exit(1);
 	}
 	const std::string path = argc == 2 ? argv[1] : "../test.hfg";
 	henifig::process_logger::set_enabled(true);

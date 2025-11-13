@@ -1052,9 +1052,7 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 			appender(depth, value);
 			return parse_value(var_num, i + 4, depth);
 		}
-		case '-' : {
-			is_signed = true;
-		}
+		case '-' : is_signed = true;
 		case '0' ... '9': {
 			bool is_float{};
 			std::string value;

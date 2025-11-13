@@ -21,6 +21,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <cstring>
 #include <sstream>
 #include <variant>
 #include <map>
@@ -65,11 +66,11 @@ namespace henifig {
 	struct map_t;
 	class value_t;
 
+	using value_map = std::map <std::string, value_t>;
 	using value_variant = std::variant
 	<unset_t, declaration_t, std::string, char, double, unsigned long long, long long, bool, array_t, map_t>;
 
 	using value_array = std::vector <value_t>;
-	using value_map = std::map <std::string, value_t>;
 
 	struct array_t {
 		size_t index{};
@@ -83,6 +84,27 @@ namespace henifig {
 		operator const value_map&() const;
 		[[nodiscard]] const value_map& get() const;
 	};
+
+	namespace detail {
+		template <typename T>
+		struct type_identity {
+			using type = T;
+		};
+		template <typename... Args, typename T>
+		constexpr bool is_alternative(type_identity <std::variant <Args...>>, type_identity <T>) {
+			return (std::is_same_v <Args, T> || ...);
+		}
+	}
+
+	template<typename T>
+	constexpr inline bool in_variant = detail::is_alternative(detail::type_identity <value_variant>{}, detail::type_identity <T>{});
+
+	template <typename T, typename... Args>
+	constexpr inline bool convertible_to_variant = in_variant <T> || detail::is_alternative(detail::type_identity <std::variant <Args...>>{}, detail::type_identity <T>{});
+
+	template <typename T>
+	constexpr inline bool convertible_to_ref = convertible_to_variant <T, value_array, value_map>;
+
 	class value_t {
 	public:
 		value_variant value;
@@ -91,17 +113,44 @@ namespace henifig {
 		template <typename T>
 		value_t(T value) : value(std::move(value)) {}
 		operator const value_variant&() const;
-		template <typename T>
-		[[nodiscard]] T get() const {
-			if constexpr (std::is_same <T, value_array>() || std::is_same <T, array_t>()) {
-				return std::get <array_t>(value);
+
+		/**
+		 * @brief Get a reference to the underlying value.
+		 * @tparam T The type to get a reference to.
+		 * @return A reference to the underlying value.
+		 * @exception std::bad_variant_access If a reference to T can't refer to the underlying variable.
+		 */
+		template <typename T, typename = std::enable_if_t <convertible_to_ref <T>>>
+		[[nodiscard]] const T& get() const {
+			if constexpr (std::is_same_v <T, value_array>) {
+				return std::get <array_t>(value).get();
 			}
-			else if constexpr (std::is_same <T, value_map>() || std::is_same <T, map_t>()) {
-				return std::get <map_t>(value);
+			else if constexpr (std::is_same_v <T, value_map>) {
+				return std::get <map_t>(value).get();
 			}
-			else if constexpr (!std::is_same <T, bool>() &&
-			!std::is_same <T, char>() && !std::is_same <T, unsigned char>() &&
-			std::is_convertible <T, int>()) {
+			else {
+				return std::get <T>(value);
+			}
+		}
+
+		/**
+		 * @brief Convert self to the type of the underlying value through @ref get.
+		 * @tparam T The type to convert to.
+		 */
+		template <typename T, typename = std::enable_if_t <convertible_to_ref <T>>>
+		[[nodiscard]] operator const T&() const {
+			return get <T>();
+		}
+
+		/**
+		 * @brief Convert self to the type compatible with that of the underlying value through @ref get_val.
+		 * @tparam T The type to convert to.
+		 */
+		template <typename T, typename = std::enable_if_t <!convertible_to_ref <T>>>
+		[[nodiscard]] operator T() const {
+			if constexpr (!std::is_same_v <T, bool> &&
+			!std::is_same_v <T, char> &&
+			std::is_convertible_v <T, int>) {
 				if constexpr (std::is_floating_point <T>()) {
 					return std::get <double>(value);
 				}
@@ -112,17 +161,13 @@ namespace henifig {
 					return std::get <long long>(value);
 				}
 			}
-			else if constexpr (std::is_convertible <std::string, T>()) {
-				return std::get <std::string>(value);
+			else if constexpr (std::is_convertible_v <const char*, T> && !std::is_same_v <T, std::string>) {
+				return std::get <std::string>(value).data();
 			}
 			else {
-				static_assert(std::is_convertible <T, value_variant>(), "Can't cast T to the types in value_t.");
+				static_assert(std::is_convertible_v <T, value_variant>, "Can't cast T to the types in value_t.");
 				return std::get <T>(value);
 			}
-		}
-		template <typename T>
-		[[nodiscard]] operator T() const {
-			return get <T>();
 		}
 		template <typename T>
 		value_t& operator =(const T& val) {
@@ -130,16 +175,16 @@ namespace henifig {
 			return *this;
 		}
 		template <typename T>
-		bool operator ==(T val) const {
-			if constexpr (std::is_same <T, const char*>()) {
-				return this->get <std::string>() == val;
+		[[nodiscard]] bool operator ==(const T& val) const {
+			if constexpr (std::is_convertible_v <T, const char*> && !std::is_same_v <T, std::string>) {
+				return !strcmp(*this, val);
 			}
 			else {
-				return this->get <T>() == val;
+				return static_cast <T>(*this) == val;
 			}
 		}
 		template <typename T>
-		bool operator !=(const T& val) const {
+		[[nodiscard]] bool operator !=(const T& val) const {
 			return !(*this == val);
 		}
 		[[nodiscard]] std::size_t index() const;
@@ -152,7 +197,7 @@ namespace henifig {
 		value_t operator [](const std::size_t& index) const;
 		template <typename T>
 		value_t operator [](const T& index) const {
-			return get <value_map>()[static_cast <std::string>(index)];
+			return get <value_map>().at(static_cast <std::string>(index));
 		}
 	};
 	struct depth_t {
