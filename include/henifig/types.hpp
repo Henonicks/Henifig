@@ -194,9 +194,9 @@ namespace henifig {
 		[[nodiscard]] bool is() const {
 			return std::holds_alternative <T>(value);
 		}
-		value_t operator [](const std::size_t& index) const;
+		const value_t& operator [](const std::size_t& index) const;
 		template <typename T>
-		value_t operator [](const T& index) const {
+		const value_t& operator [](const T& index) const {
 			return get <value_map>().at(static_cast <std::string>(index));
 		}
 	};

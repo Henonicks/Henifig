@@ -1143,6 +1143,6 @@ const henifig::value_array& henifig::config_t::get_arr(const size_t& index) cons
 	return arrs[index];
 }
 
-const std::map <std::string, henifig::value_t>& henifig::config_t::get_map(const size_t& index) const {
+const henifig::value_map& henifig::config_t::get_map(const size_t& index) const {
 	return maps[index];
 }
