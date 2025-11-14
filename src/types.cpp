@@ -87,7 +87,7 @@ bool henifig::value_t::isndef() const {
 	return value.index() != declaration;
 }
 
-henifig::value_t henifig::value_t::operator[](const std::size_t& index) const {
+const henifig::value_t& henifig::value_t::operator[](const std::size_t& index) const {
 	return get <value_array>()[index];
 }
 
