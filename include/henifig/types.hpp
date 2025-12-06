@@ -254,6 +254,7 @@ namespace henifig {
 		std::string value_to_json(const value_t& value, const size_t& spaces);
 	public:
 		config_t() = default;
+		void clear();
 		explicit config_t(std::string_view filename);
 		void operator <<(std::string_view new_content);
 		void operator <<(const std::ifstream& cfg_file);

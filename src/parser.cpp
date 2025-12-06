@@ -22,12 +22,30 @@ henifig::config_t::config_t(const std::string_view filename) {
 	open(filename);
 }
 
-void henifig::config_t::operator <<(const std::string_view new_content) {
+void henifig::config_t::clear() {
+	filename = std::string();
+	vars.clear();
+	var_nums.clear();
+	values_str.clear();
+	values.clear();
+	arrs.clear();
+	maps.clear();
+	line_nums.clear();
+	arr_indexes = std::stack <size_t>();
+	map_indexes = std::stack <size_t>();
+	map_keys.clear();
+	content.clear();
 	content.str(std::string());
+	parsed_content.clear();
+	parsed_content.str(std::string());
+	space_offsets = 0;
+}
+
+void henifig::config_t::operator <<(const std::string_view new_content) {
+	this->clear();
 	content << new_content;
 	if (const parse_report report = process_parsing(); report.is_error()) {
-		content.str(std::string());
-		parsed_content.str(std::string());
+		this->clear();
 		throw parse_exception(report);
 	}
 }
@@ -41,12 +59,12 @@ void henifig::config_t::operator <<(const std::ifstream& cfg_file) {
 void henifig::config_t::open(const std::string_view new_filename) {
 	filename = new_filename;
 	std::ifstream cfg_file(filename.data());
+	std::cout << "opening " << filename << '\n';
 	if (!cfg_file.is_open()) {
 		throw parse_exception(parse_report(FILE_OPEN_FAILED, 0, 0, filename));
 	}
 	*this << cfg_file;
 }
-
 
 henifig::parse_report henifig::config_t::process_parsing() {
 	if (const parse_report report = remove_comments(); report.is_error()) {
