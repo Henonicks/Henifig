@@ -59,7 +59,6 @@ void henifig::config_t::operator <<(const std::ifstream& cfg_file) {
 void henifig::config_t::open(const std::string_view new_filename) {
 	filename = new_filename;
 	std::ifstream cfg_file(filename.data());
-	std::cout << "opening " << filename << '\n';
 	if (!cfg_file.is_open()) {
 		throw parse_exception(parse_report(FILE_OPEN_FAILED, 0, 0, filename));
 	}
