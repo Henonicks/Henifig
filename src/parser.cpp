@@ -41,13 +41,17 @@ henifig::config_t::config_t(const std::string_view filename) {
 	open(filename);
 }
 
-void henifig::config_t::operator <<(const std::string_view new_content) {
-	this->clear();
+void henifig::config_t::read(const std::string_view new_content) {
 	content << new_content;
 	if (const parse_report report = process_parsing(); report.is_error()) {
 		this->clear();
 		throw parse_exception(report);
 	}
+}
+
+void henifig::config_t::operator <<(const std::string_view new_content) {
+	this->clear();
+	read(new_content);
 }
 
 void henifig::config_t::operator <<(const std::ifstream& cfg_file) {
@@ -58,12 +62,12 @@ void henifig::config_t::operator <<(const std::ifstream& cfg_file) {
 
 void henifig::config_t::open(const std::string_view new_filename) {
 	std::ifstream cfg_file(new_filename.data());
-	filename = new_filename;
 	if (!cfg_file.is_open()) {
 		throw parse_exception(parse_report(FILE_OPEN_FAILED, new_filename));
 	}
-	*this << cfg_file;
 	filename = new_filename;
+	std::stringstream new_content = std::stringstream() << cfg_file.rdbuf();
+	this->read(new_content.str());
 }
 
 henifig::parse_report henifig::config_t::process_parsing() {

@@ -252,6 +252,7 @@ namespace henifig {
 		error_codes print_array(const value_array& x);
 		error_codes print_map(const value_map& x);
 		std::string value_to_json(const value_t& value, const size_t& spaces);
+		void read(std::string_view new_content);
 	public:
 		config_t() = default;
 		void clear();
