@@ -18,10 +18,6 @@
 #include "henifig/internal/logger.hpp"
 #include "henifig/get.hpp"
 
-henifig::config_t::config_t(const std::string_view filename) {
-	open(filename);
-}
-
 void henifig::config_t::clear() {
 	filename = std::string();
 	vars.clear();
@@ -41,6 +37,10 @@ void henifig::config_t::clear() {
 	space_offsets = 0;
 }
 
+henifig::config_t::config_t(const std::string_view filename) {
+	open(filename);
+}
+
 void henifig::config_t::operator <<(const std::string_view new_content) {
 	this->clear();
 	content << new_content;
@@ -57,12 +57,12 @@ void henifig::config_t::operator <<(const std::ifstream& cfg_file) {
 }
 
 void henifig::config_t::open(const std::string_view new_filename) {
-	filename = new_filename;
-	std::ifstream cfg_file(filename.data());
+	std::ifstream cfg_file(new_filename.data());
 	if (!cfg_file.is_open()) {
-		throw parse_exception(parse_report(FILE_OPEN_FAILED, 0, 0, filename));
+		throw parse_exception(parse_report(FILE_OPEN_FAILED, new_filename));
 	}
 	*this << cfg_file;
+	filename = new_filename;
 }
 
 henifig::parse_report henifig::config_t::process_parsing() {
@@ -928,11 +928,11 @@ henifig::parse_report henifig::config_t::parse() {
 #define append_to_map(original_value, new_value) \
 	value_t& map_value_ref = original_value; \
 	if (map_value_ref.index() != unset) { \
-		return REDECLARED_KEY; \
+		return {REDECLARED_KEY, 0, 0, filename, value.get <std::string>()}; \
 	} \
 	map_value_ref = new_value
 
-henifig::error_codes henifig::config_t::append(depth_t& depth, const value_t& value) {
+henifig::parse_report henifig::config_t::append(depth_t& depth, const value_t& value) {
 	switch (depth.index_type) {
 		case VAR: {
 			values.push_back(value);
@@ -983,15 +983,15 @@ henifig::error_codes henifig::config_t::append(depth_t& depth, const value_t& va
 		}
 		default: break;
 	}
-	return OK;
+	return {};
 }
 
 #undef append_to_map
 
 #define appender(depth, value) \
-	error_codes error_code = append(depth, value); \
-	if (error_code != OK) \
-		throw parse_exception(parse_report(error_code, line_nums[vars[var_num]], 0, filename)) \
+	const henifig::parse_report report = append(depth, value); \
+	if (report.get_error_code() != OK) \
+		throw parse_exception(parse_report(report.get_error_code(), line_nums[vars[var_num]], 0, report.get_error_filename(), report.get_parse_error_details())) \
 
 #define container_appender(depth) \
 	appender(depth, unset_t{})
@@ -1109,7 +1109,7 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 			new_depth.index_type = ARR;
 			container_appender(new_depth);
 			new_depth.index_type = ARR_ITEM;
-			size_t new_pos = parse_value(var_num, pos + 1, new_depth);
+			const size_t new_pos = parse_value(var_num, pos + 1, new_depth);
 			return parse_value(var_num, new_pos, depth);
 		}
 		case '{': {
@@ -1118,7 +1118,7 @@ size_t henifig::config_t::parse_value(const size_t& var_num, const size_t& pos, 
 			new_depth.index_type = MAP;
 			container_appender(new_depth);
 			new_depth.index_type = MAP_KEY;
-			size_t new_pos = parse_value(var_num, pos + 1, new_depth);
+			const size_t new_pos = parse_value(var_num, pos + 1, new_depth);
 			return parse_value(var_num, new_pos, depth);
 		}
 		case ',': {
