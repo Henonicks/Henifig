@@ -1,4 +1,4 @@
-/decl\s
+/decl\
 /hello\   | "Hello, " "World!"
 /h\       | 'h'
 /number\  | -1111.1
