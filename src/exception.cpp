@@ -26,7 +26,7 @@ henifig::parse_exception::parse_exception(const parse_report& report) {
 		" on " +
 		(report.get_error_line() == 0 && report.get_error_index() == 0 ? "<position not given>" :
 		(report.get_error_index() == 0 ?
-			std::to_string(report.get_error_line()) :
+			std::string("line ") + std::to_string(report.get_error_line()) :
 			std::to_string(report.get_error_line()) + ':' + std::to_string(report.get_error_index()))) +
 		" - " +
 			report.get_parse_error() +

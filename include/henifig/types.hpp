@@ -207,7 +207,7 @@ namespace henifig {
 	};
 
 	class parse_report {
-		const error_codes error_code{};
+		const error_codes error_code{OK};
 		const size_t error_line{};
 		const size_t error_index{};
 		const std::string error_filename;
@@ -246,7 +246,7 @@ namespace henifig {
 		parse_report lex();
 		parse_report parse();
 		size_t parse_value(const size_t& var_num, const size_t& pos = 0, depth_t depth = {});
-		error_codes append(depth_t& depth, const value_t& value = declaration_t{});
+		parse_report append(depth_t& depth, const value_t& value = declaration_t{});
 		size_t space_offsets{};
 		std::string get_spaces(const size_t& offset = 2) const;
 		error_codes print_array(const value_array& x);
