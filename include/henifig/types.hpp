@@ -27,6 +27,7 @@
 #include <map>
 #include <stack>
 #include <type_traits>
+#include <unordered_map>
 
 #include "henifig/errors.hpp"
 
@@ -96,7 +97,7 @@ namespace henifig {
 		}
 	}
 
-	template<typename T>
+	template <typename T>
 	constexpr inline bool in_variant = detail::is_alternative(detail::type_identity <value_variant>{}, detail::type_identity <T>{});
 
 	template <typename T, typename... Args>
@@ -104,6 +105,18 @@ namespace henifig {
 
 	template <typename T>
 	constexpr inline bool convertible_to_ref = convertible_to_variant <T, value_array, value_map>;
+
+	template <class T, template <class...> class Template>
+	struct is_specialisation : std::false_type {};
+
+	template <template <class...> class Template, class... Args>
+	struct is_specialisation <Template <Args...>, Template> : std::true_type {};
+
+	template <typename T>
+	constexpr inline bool is_vector = is_specialisation <T, std::vector>::value;
+
+	template <typename T>
+	constexpr inline bool is_map = is_specialisation <T, std::map>::value || is_specialisation <T, std::unordered_map>::value;
 
 	class value_t {
 	public:
@@ -143,7 +156,7 @@ namespace henifig {
 		}
 
 		/**
-		 * @brief Convert self to the type compatible with that of the underlying value through @ref get_val.
+		 * @brief Convert self to the type compatible with that of the underlying value through @ref get.
 		 * @tparam T The type to convert to.
 		 */
 		template <typename T, typename = std::enable_if_t <!convertible_to_ref <T>>>
@@ -164,11 +177,26 @@ namespace henifig {
 			else if constexpr (std::is_convertible_v <const char*, T> && !std::is_same_v <T, std::string>) {
 				return std::get <std::string>(value).data();
 			}
+			else if constexpr (is_vector <T>) {
+				T res;
+				for (const value_t& x : this->get <value_array>()) {
+					res.push_back(x);
+				}
+				return res;
+			}
+			else if constexpr (is_map <T>) {
+				T res;
+				for (const auto& x : this->get <value_map>()) {
+					res[x.first] = x.second.get <typename T::mapped_type>();
+				}
+				return res;
+			}
 			else {
 				static_assert(std::is_convertible_v <T, value_variant>, "Can't cast T to the types in value_t.");
 				return std::get <T>(value);
 			}
 		}
+
 		template <typename T>
 		value_t& operator =(const T& val) {
 			value = val;

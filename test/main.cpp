@@ -115,7 +115,7 @@ int main(const int argc, const char** argv) {
 		[&cfg]() -> bool {
 			try {
 				const henifig::value_map& map = cfg["map"];
-				if (map.size() != 2) {
+				if (map.size() != 4) {
 					std::cout << "map size: " << map.size() << '\n';
 					return false;
 				}
@@ -128,8 +128,39 @@ int main(const int argc, const char** argv) {
 					std::cout << "arr[0] is "; cfg.print_value(arr[0]);
 					return false;
 				}
+				const henifig::value_map& penguin = map.at("penguin");
+				if (penguin.size() != 1) {
+					std::cout << "penguin size: " << map.size() << '\n';
+					return false;
+				}
+				if (!penguin.at("Linux").isdef()) {
+					std::cout << "Linux isn't a declaration\n";
+					return false;
+				}
 				if (map.at("1") != 2) {
 					std::cout << "map[\"1\"] is "; cfg.print_value(map.at("1"));
+					return false;
+				}
+				if (!map.at("I won't").isdef()) {
+					std::cout << "I won't isn't a declaration\n";
+					return false;
+				}
+				return true;
+			}
+			catch (const std::exception& e) {
+				std::cout << e.what() << '\n';
+				return false;
+			}
+		},
+		[&cfg]() -> bool {
+			try {
+				const henifig::value_map& another_map = cfg["another map"];
+				if (another_map.size() != 1) {
+					std::cout << "map size: " << another_map.size() << '\n';
+					return false;
+				}
+				if (another_map.at("hello") != "guys") {
+					std::cout << "map[\"1\"] is "; cfg.print_value(another_map.at("hello"));
 					return false;
 				}
 				return true;

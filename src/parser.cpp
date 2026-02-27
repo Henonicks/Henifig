@@ -179,7 +179,7 @@ henifig::parse_report henifig::config_t::remove_comments() {
 			if (hanging_escape != i) {
 				hanging_escape = 0;
 			}
-			if (line[i] == '	') {
+			if (line[i] == '\t') {
 				if (!hanging_quote && !hanging_apostrophe) {
 					line[i] = ' ';
 				}
@@ -622,7 +622,9 @@ henifig::parse_report henifig::config_t::lex() {
 								error_code = HANGING_PIPE;
 								break;
 							}
-							--map_pipes_amount;
+							if (map_pipes_amount > 0) {
+								--map_pipes_amount;
+							}
 							--map_keys_amount;
 							if (hanging_map.empty()) {
 								error_code = UNEXPECTED_MAP_END;
