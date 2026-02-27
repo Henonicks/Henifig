@@ -12,6 +12,13 @@
     }, -0.100000, "u", false],
     "map" : {
         "1" : 2,
-        "I will" : ["rise"]
+        "I will" : ["rise"],
+        "I won't" : null,
+        "penguin" : {
+            "Linux" : null
+        }
+    },
+    "another map" : {
+        "hello" : "guys"
     }
 }
