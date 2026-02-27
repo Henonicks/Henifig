@@ -187,7 +187,7 @@ namespace henifig {
 			else if constexpr (is_map <T>) {
 				T res;
 				for (const auto& x : this->get <value_map>()) {
-					res[x.first] = x.second.get <typename T::mapped_type>();
+					res[x.first] = static_cast <typename T::mapped_type>(x.second);
 				}
 				return res;
 			}
