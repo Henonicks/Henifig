@@ -16,7 +16,8 @@
   $"penguin" | {
     $"Linux"
   },
-  $"1" | 2,
+  $"From" | "ashes",
+  $"1" | 1.23,
   $"I won't"
 }\
 /another map{
