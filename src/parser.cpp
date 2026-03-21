@@ -439,7 +439,7 @@ henifig::parse_report henifig::config_t::lex() {
 						hanging_dollar = line[i] == '$' && line[i + 1] != '"';
 						unexpected_dollar = line[i] == '$' && !is_map();
 						repeated_dollar = line[i] == '$' && line[i - 1] == '$';
-						expected_dollar = (line[i] != '$' && line[i] != '"') && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|') && is_map();
+						expected_dollar = (line[i] != '$' && line[i] != '"') && line[i - 1] != '$' && line[i] != ',' && line[i] != '}' && (value.empty() || !value.empty() && *value.rbegin() != '|' && !isdigit(*value.rbegin()) && *value.rbegin() != '.') && is_map();
 						piped_key = line[i] == '$' && (!value.empty() && *value.rbegin() != '$' && *value.rbegin() != '{' && *value.rbegin() != ',');
 					}
 					// I didn't say I had a lot of tests

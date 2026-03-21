@@ -115,7 +115,7 @@ int main(const int argc, const char** argv) {
 		[&cfg]() -> bool {
 			try {
 				const henifig::value_map& map = cfg["map"];
-				if (map.size() != 4) {
+				if (map.size() != 5) {
 					std::cout << "map size: " << map.size() << '\n';
 					return false;
 				}
@@ -137,9 +137,12 @@ int main(const int argc, const char** argv) {
 					std::cout << "Linux isn't a declaration\n";
 					return false;
 				}
-				if (map.at("1") != 2) {
+				if (map.at("1") != 1.23) {
 					std::cout << "map[\"1\"] is "; cfg.print_value(map.at("1"));
 					return false;
+				}
+				if (map.at("From") != "ashes") {
+					std::cout << "map[\"From\"] is "; cfg.print_value(map.at("From"));
 				}
 				if (!map.at("I won't").isdef()) {
 					std::cout << "I won't isn't a declaration\n";
