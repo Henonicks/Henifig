@@ -20,7 +20,7 @@ const char* henifig::parse_exception::what() const noexcept {
 	return full_error.c_str();
 }
 
-henifig::parse_exception::parse_exception(const parse_report& report) {
+henifig::parse_exception::parse_exception(const parse_report& report) : report(report) {
 	full_error = std::string("Parsing error") +
 		(!report.get_error_filename().empty() ? std::string(" in `") + report.get_error_filename().data() + '`' : "") +
 		" on " +
